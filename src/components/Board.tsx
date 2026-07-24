@@ -197,8 +197,8 @@ export function Board({
       <div
         className={`flex-1 overflow-y-auto px-4 pb-4 space-y-3 ${
           animationDir === "right"
-            ? "animate-slide-in-right"
-            : "animate-slide-in-left"
+            ? "animate-spring-in-right"
+            : "animate-spring-in-left"
         }`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}

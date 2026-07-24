@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import {
@@ -319,5 +319,192 @@ describe("BLF-002: Error and empty states", () => {
     await waitFor(() => {
       expect(screen.getByText("No projects found")).toBeInTheDocument();
     });
+  });
+});
+
+describe("BLF-003: Swipe navigation between columns", () => {
+  const swipe = (element: Element, fromX: number, toX: number) => {
+    fireEvent.touchStart(element, {
+      touches: [{ clientX: fromX, clientY: 0 }],
+    });
+    fireEvent.touchEnd(element, {
+      changedTouches: [{ clientX: toX, clientY: 0 }],
+    });
+  };
+
+  const getSwipeableArea = (): Element => {
+    const el = document.querySelector(".overflow-y-auto");
+    if (!el) throw new Error("Could not find swipeable content area");
+    return el;
+  };
+
+  it("swipe left advances to next column", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Swipe left (finger moves from right to left) to go to "Ready"
+    swipe(getSwipeableArea(), 300, 200);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+  });
+
+  it("swipe right goes to previous column", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // First navigate to "Ready" via swipe left
+    swipe(getSwipeableArea(), 300, 200);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // Now swipe right (finger moves from left to right) to go back to "Backlog"
+    swipe(getSwipeableArea(), 200, 300);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+  });
+
+  it("column title updates when swiping to a new column", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Swipe to Ready
+    swipe(getSwipeableArea(), 300, 200);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // Verify the column title changed
+    const headings = screen.getAllByRole("heading", { level: 1 });
+    expect(headings[0].textContent).toBe("Ready");
+  });
+
+  it("does not navigate on small swipes below threshold", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Swipe less than 60px threshold (delta = 50px)
+    swipe(getSwipeableArea(), 300, 250);
+
+    // Should still be on Backlog
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+  });
+
+  it("cannot swipe past the last column", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Navigate to Done (last column) via dot indicators
+    await userEvent.click(screen.getByLabelText("Done"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Done")).toBeInTheDocument();
+    });
+
+    // Try to swipe left past Done
+    swipe(getSwipeableArea(), 300, 200);
+
+    // Should still be on Done
+    await waitFor(() => {
+      expect(screen.getByText("Done")).toBeInTheDocument();
+    });
+
+    // Next column button should be disabled
+    const nextButton = screen.getByLabelText("Next column");
+    expect(nextButton).toBeDisabled();
+  });
+
+  it("cannot swipe before the first column", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Try to swipe right past Backlog (first column)
+    swipe(getSwipeableArea(), 200, 400);
+
+    // Should still be on Backlog
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Previous column button should be disabled
+    const prevButton = screen.getByLabelText("Previous column");
+    expect(prevButton).toBeDisabled();
+  });
+
+  it("applies spring animation class on swipe left", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Swipe left to go to Ready
+    swipe(getSwipeableArea(), 300, 200);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // The content area should have the spring-right animation class
+    expect(getSwipeableArea().classList.contains("animate-spring-in-right")).toBe(true);
+  });
+
+  it("applies spring animation class on swipe right", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Go to Ready first
+    swipe(getSwipeableArea(), 300, 200);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // Swipe right to go back to Backlog
+    swipe(getSwipeableArea(), 200, 300);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // The content area should have the spring-left animation class
+    expect(getSwipeableArea().classList.contains("animate-spring-in-left")).toBe(true);
   });
 });
