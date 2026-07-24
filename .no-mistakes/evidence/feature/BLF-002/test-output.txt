@@ -1,0 +1,16 @@
+
+> backlog-frontend@1.0.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /home/dietkyle/.no-mistakes/worktrees/0859e536355f/01KYAKFFAPTJSPGKSJHE744XPM
+
+(node:1008922) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/App.test.tsx (16 tests) 264ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  13:46:20
+   Duration  921ms (transform 88ms, setup 40ms, collect 147ms, tests 264ms, environment 232ms, prepare 60ms)
+
