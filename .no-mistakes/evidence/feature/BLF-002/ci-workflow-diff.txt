@@ -1,0 +1,32 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 87a05ea..7a43e75 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -6,10 +6,18 @@ on:
+   pull_request:
+     branches: [main]
+ 
++concurrency:
++  group: ${{ github.workflow }}-${{ github.ref }}
++  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
++
++permissions: {}
++
+ jobs:
+   check:
+     name: Typecheck & Test
+     runs-on: ubuntu-latest
++    permissions:
++      contents: read
+     steps:
+       - uses: actions/checkout@v4
+ 
+@@ -30,6 +38,8 @@ jobs:
+     name: Build
+     runs-on: ubuntu-latest
+     needs: check
++    permissions:
++      contents: read
+     steps:
+       - uses: actions/checkout@v4
+ 

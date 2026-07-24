@@ -1,0 +1,13 @@
+
+> backlog-frontend@1.0.0 build
+> tsc -b && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 79 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.94 kB │ gzip:   0.53 kB
+dist/assets/index-CDJVl91-.css   22.71 kB │ gzip:   4.95 kB
+dist/assets/index-D3CTr82b.js   431.82 kB │ gzip: 122.24 kB
+✓ built in 932ms
