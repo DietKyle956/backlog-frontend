@@ -95,6 +95,13 @@ body {
   animation: springInLeft 0.4s ease-out;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-spring-in-right,
+  .animate-spring-in-left {
+    animation: none;
+  }
+}
+
 /* Legacy slide transition kept for smooth fallback */
 .animate-slide-in-right {
   animation: springInRight 0.4s ease-out;
