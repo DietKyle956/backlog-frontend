@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import type {
   Story,
   Blocker,
@@ -97,17 +97,17 @@ export function Board({
   };
 
   // Touch swipe handling
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const touchStartRef = useRef<number | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
+    touchStartRef.current = e.touches[0].clientX;
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const delta = e.changedTouches[0].clientX - touchStart;
+    if (touchStartRef.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartRef.current;
     if (Math.abs(delta) > 60) {
       navigateColumn(delta > 0 ? "left" : "right");
     }
-    setTouchStart(null);
+    touchStartRef.current = null;
   };
 
   if (!currentColumn) return null;

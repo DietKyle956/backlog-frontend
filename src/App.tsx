@@ -34,6 +34,7 @@ export function App() {
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   // Restore project or default to first alphabetically
@@ -87,6 +88,8 @@ export function App() {
 
   const handleTransition = useCallback(
     async (storyId: number, newStatus: StoryStatus) => {
+      if (transitioning) return;
+      setTransitioning(true);
       setTransitionError(null);
       const { error: updateError } = await supabase
         .from("stories")
@@ -95,16 +98,19 @@ export function App() {
 
       if (updateError) {
         setTransitionError(updateError.message);
+        setTransitioning(false);
         return;
       }
 
-      // Optimistic update handled by Realtime refetch
+      setTransitioning(false);
     },
-    [],
+    [transitioning],
   );
 
   const handleReactivate = useCallback(
     async (storyId: number) => {
+      if (transitioning) return;
+      setTransitioning(true);
       setTransitionError(null);
       const { error: updateError } = await supabase
         .from("stories")
@@ -113,12 +119,14 @@ export function App() {
 
       if (updateError) {
         setTransitionError(updateError.message);
+        setTransitioning(false);
         return;
       }
 
       setShowTerminal(false);
+      setTransitioning(false);
     },
-    [],
+    [transitioning],
   );
 
   const selectedProject = useMemo(
@@ -129,11 +137,10 @@ export function App() {
 
   const filteredStories = useMemo(() => {
     if (!data || !selectedProjectId) return [];
-    if (showTerminal) return data.stories;
     return data.stories.filter(
       (s) => s.project_id === selectedProjectId,
     );
-  }, [data, selectedProjectId, showTerminal]);
+  }, [data, selectedProjectId]);
 
   // Loading state
   if (loading) {

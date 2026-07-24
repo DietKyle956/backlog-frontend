@@ -39,18 +39,21 @@ export const PRIORITY_LABELS: Record<number, string> = {
   1: "Critical",
   2: "High",
   3: "Medium",
+  4: "Low",
 };
 
 export const PRIORITY_COLORS: Record<number, string> = {
   1: "var(--color-priority-1)",
   2: "var(--color-priority-2)",
   3: "var(--color-priority-3)",
+  4: "var(--color-priority-4)",
 };
 
 export const PRIORITY_BG: Record<number, string> = {
   1: "rgba(248,113,113,0.15)",
   2: "rgba(251,146,60,0.15)",
   3: "rgba(251,191,36,0.15)",
+  4: "rgba(156,163,175,0.15)",
 };
 
 export interface Project {

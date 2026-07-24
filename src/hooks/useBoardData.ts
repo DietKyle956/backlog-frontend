@@ -67,6 +67,11 @@ export function useBoardData(): BoardDataState {
         { event: "*", schema: "public", table: "blockers" },
         () => fetchAll(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dependencies" },
+        () => fetchAll(),
+      )
       .subscribe();
 
     return () => {
