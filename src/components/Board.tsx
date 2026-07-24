@@ -37,6 +37,7 @@ export function Board({
   const [animationDir, setAnimationDir] = useState<"right" | "left">(
     "right",
   );
+  const [animationKey, setAnimationKey] = useState(0);
 
   const activeStories = useMemo(
     () => stories.filter((s) => ACTIVE_STATUSES.includes(s.status as StoryStatus)),
@@ -83,13 +84,17 @@ export function Board({
 
   const navigateColumn = useCallback(
     (dir: "left" | "right") => {
-      setAnimationDir(dir);
-      setCurrentColumnIndex((prev) => {
-        if (dir === "left") return Math.max(0, prev - 1);
-        return Math.min(columns.length - 1, prev + 1);
-      });
+      const nextIndex =
+        dir === "left"
+          ? Math.max(0, currentColumnIndex - 1)
+          : Math.min(columns.length - 1, currentColumnIndex + 1);
+      if (nextIndex !== currentColumnIndex) {
+        setAnimationDir(dir);
+        setAnimationKey((k) => k + 1);
+        setCurrentColumnIndex(nextIndex);
+      }
     },
-    [columns.length],
+    [columns.length, currentColumnIndex],
   );
 
   const getDependencyCount = (storyId: number): number => {
@@ -133,10 +138,13 @@ export function Board({
               key={col.status}
               type="button"
               onClick={() => {
-                setAnimationDir(
-                  i > currentColumnIndex ? "right" : "left",
-                );
-                setCurrentColumnIndex(i);
+                if (i !== currentColumnIndex) {
+                  setAnimationDir(
+                    i > currentColumnIndex ? "right" : "left",
+                  );
+                  setAnimationKey((k) => k + 1);
+                  setCurrentColumnIndex(i);
+                }
               }}
               className={`rounded-full transition-all duration-200 ${
                 i === currentColumnIndex
@@ -195,10 +203,11 @@ export function Board({
 
       {/* Column content */}
       <div
+        key={animationKey}
         className={`flex-1 overflow-y-auto px-4 pb-4 space-y-3 ${
           animationDir === "right"
-            ? "animate-slide-in-right"
-            : "animate-slide-in-left"
+            ? "animate-spring-in-right"
+            : "animate-spring-in-left"
         }`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}

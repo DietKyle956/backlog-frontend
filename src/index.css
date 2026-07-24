@@ -44,35 +44,71 @@ body {
   overflow: hidden;
 }
 
-/* Smooth slide transition between columns */
-@keyframes slideInRight {
-  from {
-    transform: translateX(30px);
+/* Spring physics slide transition between columns */
+@keyframes springInRight {
+  0% {
+    transform: translateX(60px);
     opacity: 0;
   }
-  to {
+  50% {
+    transform: translateX(-8px);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(3px);
+  }
+  85% {
+    transform: translateX(-1px);
+  }
+  100% {
     transform: translateX(0);
     opacity: 1;
   }
 }
 
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-30px);
+@keyframes springInLeft {
+  0% {
+    transform: translateX(-60px);
     opacity: 0;
   }
-  to {
+  50% {
+    transform: translateX(8px);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+  85% {
+    transform: translateX(1px);
+  }
+  100% {
     transform: translateX(0);
     opacity: 1;
   }
 }
 
+.animate-spring-in-right {
+  animation: springInRight 0.4s ease-out;
+}
+
+.animate-spring-in-left {
+  animation: springInLeft 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spring-in-right,
+  .animate-spring-in-left {
+    animation: none;
+  }
+}
+
+/* Legacy slide transition kept for smooth fallback */
 .animate-slide-in-right {
-  animation: slideInRight 0.25s ease-out;
+  animation: springInRight 0.4s ease-out;
 }
 
 .animate-slide-in-left {
-  animation: slideInLeft 0.25s ease-out;
+  animation: springInLeft 0.4s ease-out;
 }
 
 @keyframes fadeIn {
