@@ -75,7 +75,9 @@ A Dependency is a structural ordering relationship: Story A depends on Story B. 
 
 ## Blocker
 
-A Blocker is an active impediment preventing a Story from progressing. Unlike a Dependency (which is about work ordering), a Blocker signals that something is actively stopping work. A Blocker has a human-written description and may reference another Story via `blocking_story_id`. A Blocker can be Resolved (when `resolved_at` is set). Unresolved Blockers display as a red warning (🔒) on the Story card and in the detail view.
+A Blocker is an active impediment preventing a Story from progressing. Unlike a Dependency (which is about work ordering), a Blocker signals that something is actively stopping work. A Blocker has a human-written description and may reference another Story via `blocking_story_id`. A Blocker can be Resolved (when `resolved_at` is set).
+
+In the detail overlay, unresolved Blockers display as red warning cards with a "Blocked" label, a red dot indicator, and danger-colored styling. Resolved Blockers display muted (opacity-60) with line-through text and a green "Resolved" label. On the StoryCard, only unresolved Blockers trigger a lock icon (🔒).
 
 ## Acceptance Criteria
 

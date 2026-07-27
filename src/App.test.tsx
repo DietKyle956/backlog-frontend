@@ -633,3 +633,198 @@ describe("BLF-008: Story detail overlay slides in from right", () => {
     expect(overlay!.classList.contains("z-50")).toBe(true);
   });
 });
+
+describe("BLF-009: Story detail overlay content sections", () => {
+  it("shows description with proper whitespace rendering", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    // Confirm overlay is open via the sign-in notice
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // Description section heading is an H3
+    const descHeadings = screen.getAllByText("Description");
+    const descHeading = descHeadings.find((el) => el.tagName === "H3");
+    expect(descHeading).toBeInTheDocument();
+
+    // The description text appears on both the board card (line-clamp) and
+    // in the detail overlay (whitespace-pre-wrap). The overlay version has
+    // whitespace-pre-wrap for proper line break rendering.
+    const descParas = screen.getAllByText("Implement GitHub OAuth login");
+    const overlayDesc = descParas.find(
+      (el) => el.tagName === "P" && el.className.includes("whitespace-pre-wrap"),
+    );
+    expect(overlayDesc).toBeInTheDocument();
+  });
+
+  it("shows acceptance criteria as numbered checklist", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // Acceptance Criteria section heading
+    expect(screen.getByText("Acceptance Criteria")).toBeInTheDocument();
+
+    // The list should be rendered as <ol> (ordered/numbered checklist)
+    const ol = document.querySelector("ol.list-decimal");
+    expect(ol).toBeInTheDocument();
+
+    // The AC items should be list items within the ordered list
+    expect(screen.getByText("Login works")).toBeInTheDocument();
+    expect(screen.getByText("Session persists")).toBeInTheDocument();
+  });
+
+  it("shows dependencies with status pills", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // Dependencies section heading
+    expect(screen.getByText("Dependencies")).toBeInTheDocument();
+
+    // CIQ-002 depends on CIQ-001 which is done - should show Done pill
+    expect(screen.getByText("Done")).toBeInTheDocument();
+
+    // The dependency displays "CIQ-001 - Set up project scaffolding"
+    // (story key plus title).
+    expect(
+      screen.getByText("CIQ-001 - Set up project scaffolding"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows unresolved blockers with red warning card and 'Blocked' label", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // Blockers section heading
+    expect(screen.getByText("Blockers")).toBeInTheDocument();
+
+    // "Blocked" label in red for unresolved blocker
+    expect(screen.getByText("Blocked")).toBeInTheDocument();
+
+    // Unresolved blocker description
+    expect(
+      screen.getByText("Waiting on CIQ-001 completion"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows resolved blockers muted with line-through, green 'Resolved', opacity-60", async () => {
+    // Add a resolved blocker to the store alongside the existing unresolved one
+    mocks.store.data!.blockers.push({
+      id: 2,
+      story_id: 2,
+      blocking_story_id: 3,
+      description: "Resolved dependency issue",
+      resolved_at: "2026-07-04T00:00:00Z",
+      created_at: "2026-07-02T00:00:00Z",
+    });
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // Should show "Resolved" label (green)
+    expect(screen.getByText("Resolved")).toBeInTheDocument();
+
+    // Resolved description should have line-through
+    const resolvedDesc = screen.getByText("Resolved dependency issue");
+    expect(resolvedDesc.className).toContain("line-through");
+
+    // Both "Blocked" (unresolved) and "Resolved" should be there
+    expect(screen.getByText("Blocked")).toBeInTheDocument();
+  });
+
+  it("StoryCard lock icon does NOT show when all blockers are resolved", async () => {
+    // Set up only resolved blockers (no unresolved)
+    mocks.store.data!.blockers = [
+      {
+        id: 2,
+        story_id: 2,
+        blocking_story_id: 3,
+        description: "All clear now",
+        resolved_at: "2026-07-04T00:00:00Z",
+        created_at: "2026-07-02T00:00:00Z",
+      },
+    ];
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    // With only resolved blockers, no lock icon should be shown
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Blocked")).not.toBeInTheDocument();
+    });
+  });
+
+  it("blocking story reference shows story key from in-memory allStories", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    // The unresolved blocker for CIQ-002 blocks on CIQ-001.
+    // The blocker span shows the exact story key "CIQ-001" from in-memory
+    // allStories lookup (not a Supabase join).
+    expect(screen.getByText("CIQ-001")).toBeInTheDocument();
+
+    // The blocking story key is resolved from in-memory allStories, not
+    // from a Supabase join - the getDepStory helper uses allStories.find()
+  });
+});

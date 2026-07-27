@@ -32,6 +32,8 @@ export function StoryDetail({
   const storyDeps = dependencies.filter(
     (d) => d.story_id === story.id,
   );
+  const unresolvedBlockers = storyBlockers.filter((b) => !b.resolved_at);
+  const resolvedBlockers = storyBlockers.filter((b) => b.resolved_at);
   const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
     resolvePriority(story.priority);
 
@@ -82,23 +84,81 @@ export function StoryDetail({
         </h2>
 
         {/* Blockers warning */}
-        {storyBlockers.length > 0 && (
-          <div className="bg-accent-danger/10 border border-accent-danger/30 rounded-xl p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-accent-danger flex items-center gap-2">
-              <span>&#128274;</span> Blockers
+        {storyBlockers.length > 0 ? (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              Blockers
             </h3>
-            {storyBlockers.map((b) => (
-              <div key={b.id} className="text-sm text-text-secondary">
-                {b.description || "No description provided"}
-                {b.blocking_story_id && (
-                  <span className="text-accent ml-1">
-                    ({getDepStory(b.blocking_story_id)?.key ?? `#${b.blocking_story_id}`})
-                  </span>
-                )}
+            {/* Unresolved blockers */}
+            {unresolvedBlockers.length > 0 && (
+              <div className="space-y-2">
+                {unresolvedBlockers.map((b) => {
+                  const blockerStory = b.blocking_story_id
+                    ? getDepStory(b.blocking_story_id)
+                    : undefined;
+                  return (
+                  <div
+                    key={b.id}
+                    className="bg-accent-danger/10 border border-accent-danger/30 rounded-xl p-3 space-y-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent-danger flex-shrink-0" />
+                      <span className="text-xs font-semibold text-accent-danger uppercase tracking-wider">
+                        Blocked
+                      </span>
+                    </div>
+                    <p className="text-sm text-text-secondary">
+                      {b.description || "No description provided"}
+                    </p>
+                    {b.blocking_story_id && (
+                      <p className="text-xs mt-1">
+                        Blocking:{" "}
+                        <span className="bg-accent-danger text-white px-1.5 py-0.5 rounded text-xs font-mono">
+                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
+            {/* Resolved blockers */}
+            {resolvedBlockers.length > 0 && (
+              <div className="space-y-1.5">
+                {resolvedBlockers.map((b) => {
+                  const blockerStory = b.blocking_story_id
+                    ? getDepStory(b.blocking_story_id)
+                    : undefined;
+                  return (
+                  <div
+                    key={b.id}
+                    className="bg-surface-raised border border-border-subtle rounded-lg p-3 opacity-60"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-accent-success flex-shrink-0" />
+                      <span className="text-xs font-medium text-accent-success">
+                        Resolved
+                      </span>
+                    </div>
+                    <p className="text-sm text-text-muted line-through">
+                      {b.description || "No description provided"}
+                    </p>
+                    {b.blocking_story_id && (
+                      <p className="text-xs mt-1">
+                        Blocking:{" "}
+                        <span className="bg-accent-success text-white px-1.5 py-0.5 rounded text-xs font-mono">
+                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
 
         {/* Description */}
         {story.description && (
