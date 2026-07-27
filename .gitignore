@@ -16,3 +16,6 @@ dist/
 Thumbs.db
 tsconfig.app.tsbuildinfo
 .tokensave/
+
+# Serena
+.serena/
