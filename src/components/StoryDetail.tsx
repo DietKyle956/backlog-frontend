@@ -92,7 +92,11 @@ export function StoryDetail({
             {/* Unresolved blockers */}
             {unresolvedBlockers.length > 0 && (
               <div className="space-y-2">
-                {unresolvedBlockers.map((b) => (
+                {unresolvedBlockers.map((b) => {
+                  const blockerStory = b.blocking_story_id
+                    ? getDepStory(b.blocking_story_id)
+                    : undefined;
+                  return (
                   <div
                     key={b.id}
                     className="bg-accent-danger/10 border border-accent-danger/30 rounded-xl p-3 space-y-1"
@@ -107,22 +111,26 @@ export function StoryDetail({
                       {b.description || "No description provided"}
                     </p>
                     {b.blocking_story_id && (
-                      <p className="text-xs text-accent">
+                      <p className="text-xs mt-1">
                         Blocking:{" "}
-                        {getDepStory(b.blocking_story_id)?.key ??
-                          `#${b.blocking_story_id}`}
-                        {getDepStory(b.blocking_story_id) &&
-                          ` - ${getDepStory(b.blocking_story_id)!.title}`}
+                        <span className="bg-accent-danger text-white px-1.5 py-0.5 rounded text-xs font-mono">
+                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                        </span>
                       </p>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             {/* Resolved blockers */}
             {resolvedBlockers.length > 0 && (
               <div className="space-y-1.5">
-                {resolvedBlockers.map((b) => (
+                {resolvedBlockers.map((b) => {
+                  const blockerStory = b.blocking_story_id
+                    ? getDepStory(b.blocking_story_id)
+                    : undefined;
+                  return (
                   <div
                     key={b.id}
                     className="bg-surface-raised border border-border-subtle rounded-lg p-3 opacity-60"
@@ -137,14 +145,16 @@ export function StoryDetail({
                       {b.description || "No description provided"}
                     </p>
                     {b.blocking_story_id && (
-                      <p className="text-xs text-text-muted mt-1">
+                      <p className="text-xs mt-1">
                         Blocking:{" "}
-                        {getDepStory(b.blocking_story_id)?.key ??
-                          `#${b.blocking_story_id}`}
+                        <span className="bg-accent-success text-white px-1.5 py-0.5 rounded text-xs font-mono">
+                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                        </span>
                       </p>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
