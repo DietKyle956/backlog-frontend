@@ -124,15 +124,31 @@ export function Board({
 
         {/* Search and filter */}
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by title or key..."
-            className="flex-1 text-sm bg-surface-raised border border-border-subtle rounded-lg
-                       px-3 py-2 text-text-primary placeholder:text-text-muted
-                       focus:outline-none focus:ring-2 focus:ring-accent/50"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by title or key..."
+              className="w-full text-sm bg-surface-raised border border-border-subtle rounded-lg
+                         px-3 py-2 pr-8 text-text-primary placeholder:text-text-muted
+                         focus:outline-none focus:ring-2 focus:ring-accent/50"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center
+                           rounded-full text-text-muted hover:text-text-primary hover:bg-surface-hover
+                           transition-colors"
+                aria-label="Clear search"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4].map((p) => {
               const isActive = priorityFilter.size === 0 || priorityFilter.has(p);

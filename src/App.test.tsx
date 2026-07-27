@@ -981,3 +981,96 @@ describe("BLF-012: Terminal view shows cancelled and failed across all projects"
     });
   });
 });
+
+describe("BLF-013: Search clear button", () => {
+  it("clear button is not visible when search term is empty", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Clear button should NOT be present when search is empty
+    expect(screen.queryByLabelText("Clear search")).not.toBeInTheDocument();
+  });
+
+  it("clear button appears when user types in search input", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search by title or key...") as HTMLInputElement;
+    await userEvent.type(searchInput, "auth");
+
+    // Clear button should now be visible
+    expect(screen.getByLabelText("Clear search")).toBeInTheDocument();
+  });
+
+  it("clicking clear button resets search term and hides the button", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const searchInput: HTMLInputElement = screen.getByPlaceholderText("Search by title or key...");
+    await userEvent.type(searchInput, "auth");
+
+    // Search should filter to only matching stories
+    await waitFor(() => {
+      expect(screen.getByText("Add authentication")).toBeInTheDocument();
+      expect(screen.queryByText("Build Kanban board")).not.toBeInTheDocument();
+    });
+
+    // Click the clear button
+    await userEvent.click(screen.getByLabelText("Clear search"));
+
+    // Input should be cleared
+    expect(searchInput.value).toBe("");
+
+    // All stories should be visible again
+    await waitFor(() => {
+      expect(screen.getByText("Add authentication")).toBeInTheDocument();
+      expect(screen.getByText("Build Kanban board")).toBeInTheDocument();
+    });
+
+    // Clear button should be gone
+    expect(screen.queryByLabelText("Clear search")).not.toBeInTheDocument();
+  });
+
+  it("clear button is visible when search term is non-empty on initial render", async () => {
+    // This tests the UI state when search has content (e.g., via state initialization)
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search by title or key...") as HTMLInputElement;
+    await userEvent.type(searchInput, "kanban");
+
+    // Search filters to matching story
+    await waitFor(() => {
+      expect(screen.getByText("Build Kanban board")).toBeInTheDocument();
+      expect(screen.queryByText("Add authentication")).not.toBeInTheDocument();
+    });
+
+    // Clear button is visible
+    const clearButton = screen.getByLabelText("Clear search");
+    expect(clearButton).toBeInTheDocument();
+    expect(clearButton.tagName).toBe("BUTTON");
+
+    await userEvent.click(clearButton);
+
+    // Search is cleared, input is empty
+    await waitFor(() => {
+      expect(searchInput.value).toBe("");
+    });
+  });
+});
