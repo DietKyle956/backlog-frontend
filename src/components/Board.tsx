@@ -85,7 +85,7 @@ export function Board({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Header: Column title + dot indicators */}
+      {/* Header: Column title + dash indicators */}
       <div className="px-4 pt-4 pb-2 space-y-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-text-primary">
@@ -97,7 +97,7 @@ export function Board({
           </span>
         </div>
 
-        {/* Dot indicators */}
+        {/* Dash indicators */}
         <div className="flex items-center justify-center gap-1.5">
           {columns.map((col, i) => (
             <button
@@ -115,7 +115,7 @@ export function Board({
               className={`rounded-full transition-all duration-200 ${
                 i === currentColumnIndex
                   ? "w-6 h-1.5 bg-accent"
-                  : "w-1.5 h-1.5 bg-text-muted/40"
+                  : "w-6 h-1 bg-text-muted/30"
               }`}
               aria-label={COLUMN_LABELS[col.status]}
             />
