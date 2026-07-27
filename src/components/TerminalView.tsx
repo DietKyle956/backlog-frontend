@@ -3,7 +3,10 @@ import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
 
 interface TerminalViewProps {
   stories: Story[];
-  onReactivate: (storyId: number) => void;
+  onReactivate: (
+    storyId: number,
+    currentStatus: StoryStatus,
+  ) => void;
   isAuthenticated: boolean;
   onClose: () => void;
 }
@@ -77,7 +80,12 @@ export function TerminalView({
               {isAuthenticated && (
                 <button
                   type="button"
-                  onClick={() => onReactivate(story.id)}
+                  onClick={() =>
+                    onReactivate(
+                      story.id,
+                      story.status as StoryStatus,
+                    )
+                  }
                   className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
                              bg-accent/15 text-accent border border-accent/30
                              hover:bg-accent/20 active:scale-[0.98]
