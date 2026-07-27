@@ -458,6 +458,120 @@ describe("BLF-003: Swipe navigation between columns", () => {
   });
 });
 
+describe("BLF-004: Dot indicators show dash-style column position", () => {
+  const COLUMNS = ["Backlog", "Ready", "In Progress", "In Review", "Done"];
+
+  const getDotButtons = (): HTMLButtonElement[] => {
+    return COLUMNS.map((label) => screen.getByLabelText(label));
+  };
+
+  it("renders all five dot indicators for the five active columns", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const dots = getDotButtons();
+    expect(dots).toHaveLength(5);
+    dots.forEach((dot) => {
+      expect(dot.tagName).toBe("BUTTON");
+    });
+  });
+
+  it("active dot is dash-shaped (w-6 h-1.5) with accent color", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Initially Backlog is the active column (index 0)
+    const activeDot = screen.getByLabelText("Backlog");
+    expect(activeDot.className).toContain("w-6");
+    expect(activeDot.className).toContain("h-1.5");
+    expect(activeDot.className).toContain("bg-accent");
+    // Active dot should not have the inactive muted color
+    expect(activeDot.className).not.toContain("bg-text-muted");
+  });
+
+  it("inactive dots are uniform dash shapes (w-6 h-1) with muted color", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // All inactive dots should be uniform dashes
+    const inactiveDots = COLUMNS.slice(1).map((label) => screen.getByLabelText(label));
+    inactiveDots.forEach((dot) => {
+      expect(dot.className).toContain("w-6");
+      expect(dot.className).toContain("h-1");
+      expect(dot.className).toContain("bg-text-muted/30");
+    });
+  });
+
+  it("all five indicators use rounded-full for pill/dash shape", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    getDotButtons().forEach((dot) => {
+      expect(dot.className).toContain("rounded-full");
+    });
+  });
+
+  it("clicking a dot navigates to its column and updates active indicator", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Click the "Done" dot (index 4)
+    await userEvent.click(screen.getByLabelText("Done"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Done")).toBeInTheDocument();
+    });
+
+    // Now Done should be the active dot
+    const activeDot = screen.getByLabelText("Done");
+    expect(activeDot.className).toContain("bg-accent");
+    expect(activeDot.className).toContain("h-1.5");
+
+    // Backlog should now be inactive
+    const inactiveDot = screen.getByLabelText("Backlog");
+    expect(inactiveDot.className).toContain("bg-text-muted/30");
+    expect(inactiveDot.className).toContain("h-1");
+  });
+
+  it("active dot is thicker than inactive dots (h-1.5 vs h-1)", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const activeDot = screen.getByLabelText("Backlog");
+    const inactiveDot = screen.getByLabelText("Ready");
+
+    expect(activeDot.className).toContain("h-1.5");
+    expect(inactiveDot.className).toContain("h-1");
+    // Both should be same width (w-6) for uniformity
+    expect(activeDot.className).toContain("w-6");
+    expect(inactiveDot.className).toContain("w-6");
+  });
+});
+
 describe("BLF-008: Story detail overlay slides in from right", () => {
   it("renders overlay with slide-in-right animation class", async () => {
     localStorage.setItem("backlog-last-project-id", "3");
