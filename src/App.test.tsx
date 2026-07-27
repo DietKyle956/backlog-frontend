@@ -982,6 +982,211 @@ describe("BLF-012: Terminal view shows cancelled and failed across all projects"
   });
 });
 
+describe("BLF-014: Filter stories by priority level", () => {
+  const PRIORITIES = ["Critical", "High", "Medium", "Low"] as const;
+
+  it("renders all four priority filter chips with labels", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    PRIORITIES.forEach((label) => {
+      const chip = screen.getByLabelText(`Filter ${label} priority`);
+      expect(chip).toBeInTheDocument();
+      expect(chip.tagName).toBe("BUTTON");
+      expect(chip.textContent).toBe(label);
+    });
+  });
+
+  it("all chips appear active (filled) when no filter is set", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    PRIORITIES.forEach((label) => {
+      const chip = screen.getByLabelText(`Filter ${label} priority`);
+      expect(chip.className).toContain("text-white");
+      expect(chip.className).toContain("border-transparent");
+      // aria-pressed is false when no filter is active (size === 0)
+      expect(chip.getAttribute("aria-pressed")).toBe("false");
+    });
+  });
+
+  it("clicking a priority chip activates only that filter and sets aria-pressed", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      // High should be active (aria-pressed true)
+      const highChip = screen.getByLabelText("Filter High priority");
+      expect(highChip.getAttribute("aria-pressed")).toBe("true");
+      expect(highChip.className).toContain("text-white");
+
+      // Other chips should be inactive
+      const criticalChip = screen.getByLabelText("Filter Critical priority");
+      expect(criticalChip.getAttribute("aria-pressed")).toBe("false");
+      expect(criticalChip.className).toContain("text-text-muted");
+    });
+  });
+
+  it("multiple priority chips can be selected simultaneously", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+    await userEvent.click(screen.getByLabelText("Filter Medium priority"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Filter High priority").getAttribute("aria-pressed"),
+      ).toBe("true");
+      expect(
+        screen.getByLabelText("Filter Medium priority").getAttribute("aria-pressed"),
+      ).toBe("true");
+    });
+
+    // Critical and Low should still be inactive
+    expect(
+      screen.getByLabelText("Filter Critical priority").getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(
+      screen.getByLabelText("Filter Low priority").getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  it("filters stories to only those matching the selected priority", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Both CIQ-002 (High) and CIQ-003 (Medium) are in backlog for Contract IQ
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+
+    // Filter to only High priority
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      expect(screen.queryByText("CIQ-003")).not.toBeInTheDocument();
+    });
+  });
+
+  it("clicking the last active chip returns to show-all state", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // First, filter to only High
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("CIQ-003")).not.toBeInTheDocument();
+    });
+
+    // Click High again to deselect it (returns to empty set = show all)
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+
+    // All chips should appear active again
+    PRIORITIES.forEach((label) => {
+      const chip = screen.getByLabelText(`Filter ${label} priority`);
+      expect(chip.getAttribute("aria-pressed")).toBe("false");
+    });
+  });
+
+  it("shows empty column state when no stories match the selected priority", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Filter to Critical priority - CIQ-001 is Critical but it's "done", not in backlog
+    await userEvent.click(screen.getByLabelText("Filter Critical priority"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Nothing in Backlog yet"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("priority filter persists when switching columns", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Select High priority filter
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    // Navigate to Ready column via dash indicator click
+    await userEvent.click(screen.getByLabelText("Ready"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // High chip should still show as active (aria-pressed)
+    const highChip = screen.getByLabelText("Filter High priority");
+    expect(highChip.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("inactive chip has outlined border style and muted text", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Activate High to make others inactive
+    await userEvent.click(screen.getByLabelText("Filter High priority"));
+
+    await waitFor(() => {
+      const lowChip = screen.getByLabelText("Filter Low priority");
+      expect(lowChip.className).toContain("text-text-muted");
+      expect(lowChip.className).toContain("border-border-subtle");
+    });
+  });
+});
+
 describe("BLF-013: Search clear button", () => {
   it("clear button is not visible when search term is empty", async () => {
     localStorage.setItem("backlog-last-project-id", "3");
