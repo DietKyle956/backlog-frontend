@@ -150,7 +150,7 @@ describe("BLF-002: Board loads with Backlog column", () => {
     await userEvent.click(screen.getByLabelText("Done"));
 
     await waitFor(() => {
-      expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
+      expect(screen.getByText("Nothing in Done yet")).toBeInTheDocument();
     });
   });
 
