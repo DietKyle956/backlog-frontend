@@ -69,7 +69,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 - `useBoardData` — data fetching hook: fetches all tables, subscribes to Realtime changes, exposes refetch for pull-to-refresh
 
 ### Data flow
-- On mount, fetch all projects, stories, dependencies, and unresolved blockers in parallel
+- On mount, fetch all projects, stories, dependencies, and blockers (both resolved and unresolved) in parallel
 - Subscribe to Supabase Realtime channel for `stories`, `projects`, and `blockers` table changes
 - On any change event, refetch all data (simple and correct; the dataset is small)
 - Pull-to-refresh triggers a manual refetch
