@@ -115,7 +115,7 @@ export function Board({
               className={`rounded-full transition-all duration-200 ${
                 i === currentColumnIndex
                   ? "w-6 h-1.5 bg-accent"
-                  : "w-1.5 h-1.5 bg-text-muted/40"
+                  : "w-6 h-1 bg-text-muted/30"
               }`}
               aria-label={COLUMN_LABELS[col.status]}
             />
