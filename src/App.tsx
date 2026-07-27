@@ -5,6 +5,11 @@ import { Board } from "./components/Board";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import type { Project, StoryStatus } from "./types";
+import {
+  createTransitionRunner,
+  type TransitionResult,
+} from "./lib/transitions";
+import { createSupabaseAdapter } from "./adapters/supabase-adapter";
 
 const PROJECT_STORAGE_KEY = "backlog-last-project-id";
 
@@ -27,14 +32,16 @@ function saveProjectId(id: number) {
 }
 
 export function App() {
-  const { data, loading, error, refetch } = useBoardData();
+  // Data-access adapter (stable reference)
+  const adapter = useMemo(() => createSupabaseAdapter(), []);
+
+  const { data, loading, error, refetch } = useBoardData(adapter);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
     () => getSavedProjectId(),
   );
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
-  const [transitioning, setTransitioning] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   // Restore project or default to first alphabetically
@@ -86,47 +93,47 @@ export function App() {
     setIsAuthenticated(false);
   }, []);
 
+  // Transition runner uses the data adapter (which satisfies TransitionAdapter)
+  const transitionRunner = useMemo(
+    () => createTransitionRunner(adapter),
+    [adapter],
+  );
+
   const handleTransition = useCallback(
-    async (storyId: number, newStatus: StoryStatus) => {
-      if (transitioning) return;
-      setTransitioning(true);
+    async (
+      storyId: number,
+      currentStatus: StoryStatus,
+      newStatus: StoryStatus,
+    ): Promise<TransitionResult> => {
       setTransitionError(null);
-      const { error: updateError } = await supabase
-        .from("stories")
-        .update({ status: newStatus })
-        .eq("id", storyId);
-
-      if (updateError) {
-        setTransitionError(updateError.message);
-        setTransitioning(false);
-        return;
+      const result = await transitionRunner.performTransition(
+        storyId,
+        currentStatus,
+        newStatus,
+      );
+      if (!result.success && result.error) {
+        setTransitionError(result.error);
       }
-
-      setTransitioning(false);
+      return result;
     },
-    [transitioning],
+    [transitionRunner],
   );
 
   const handleReactivate = useCallback(
-    async (storyId: number) => {
-      if (transitioning) return;
-      setTransitioning(true);
+    async (storyId: number, currentStatus: StoryStatus) => {
       setTransitionError(null);
-      const { error: updateError } = await supabase
-        .from("stories")
-        .update({ status: "backlog" as StoryStatus })
-        .eq("id", storyId);
-
-      if (updateError) {
-        setTransitionError(updateError.message);
-        setTransitioning(false);
-        return;
+      const result = await transitionRunner.performTransition(
+        storyId,
+        currentStatus,
+        "backlog",
+      );
+      if (!result.success && result.error) {
+        setTransitionError(result.error);
+      } else if (result.success) {
+        setShowTerminal(false);
       }
-
-      setShowTerminal(false);
-      setTransitioning(false);
     },
-    [transitioning],
+    [transitionRunner],
   );
 
   const selectedProject = useMemo(

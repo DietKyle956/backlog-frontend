@@ -1,20 +1,7 @@
 import type { Story, Blocker, Dependency, StoryStatus } from "../types";
-import {
-  COLUMN_LABELS,
-  PRIORITY_LABELS,
-  PRIORITY_COLORS,
-  PRIORITY_BG,
-} from "../types";
-
-const TRANSITIONS: Record<StoryStatus, StoryStatus[]> = {
-  backlog: ["ready", "cancelled"],
-  ready: ["in_progress", "backlog", "cancelled"],
-  in_progress: ["in_review", "ready", "failed"],
-  in_review: ["done", "in_progress", "failed"],
-  done: ["in_review"],
-  cancelled: ["backlog", "failed"],
-  failed: ["backlog", "cancelled"],
-};
+import { COLUMN_LABELS, resolvePriority } from "../types";
+import { getAllowedTargets } from "../lib/transitions";
+import type { TransitionResult } from "../lib/transitions";
 
 interface StoryDetailProps {
   story: Story;
@@ -23,7 +10,11 @@ interface StoryDetailProps {
   dependencies: Dependency[];
   isAuthenticated: boolean;
   onClose: () => void;
-  onTransition: (storyId: number, newStatus: StoryStatus) => void;
+  onTransition: (
+    storyId: number,
+    currentStatus: StoryStatus,
+    newStatus: StoryStatus,
+  ) => Promise<TransitionResult>;
 }
 
 export function StoryDetail({
@@ -41,12 +32,8 @@ export function StoryDetail({
   const storyDeps = dependencies.filter(
     (d) => d.story_id === story.id,
   );
-  const priorityLabel =
-    PRIORITY_LABELS[story.priority] ?? "Low";
-  const priorityColor =
-    PRIORITY_COLORS[story.priority] ?? PRIORITY_COLORS[4];
-  const priorityBg =
-    PRIORITY_BG[story.priority] ?? PRIORITY_BG[4];
+  const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
+    resolvePriority(story.priority);
 
   const getDepStory = (id: number): Story | undefined =>
     allStories.find((s) => s.id === id);
@@ -193,11 +180,13 @@ export function StoryDetail({
           </h3>
           {isAuthenticated ? (
             <div className="flex flex-wrap gap-2">
-              {TRANSITIONS[story.status].map((target) => (
+              {getAllowedTargets(story.status).map((target) => (
                 <button
                   key={target}
                   type="button"
-                  onClick={() => onTransition(story.id, target)}
+                  onClick={() =>
+                    onTransition(story.id, story.status, target)
+                  }
                   className="px-4 py-2 text-sm font-medium rounded-lg
                              bg-surface-raised border border-border-subtle text-text-primary
                              hover:bg-surface-hover active:scale-95

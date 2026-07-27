@@ -5,11 +5,9 @@ import type {
   Dependency,
   StoryStatus,
 } from "../types";
-import {
-  COLUMN_ORDER,
-  COLUMN_LABELS,
-  ACTIVE_STATUSES,
-} from "../types";
+import { COLUMN_ORDER, COLUMN_LABELS } from "../types";
+import type { TransitionResult } from "../lib/transitions";
+import { computeColumns } from "../lib/columns";
 import { StoryCard } from "./StoryCard";
 import { StoryDetail } from "./StoryDetail";
 
@@ -18,7 +16,11 @@ interface BoardProps {
   blockers: Blocker[];
   dependencies: Dependency[];
   isAuthenticated: boolean;
-  onTransition: (storyId: number, newStatus: StoryStatus) => void;
+  onTransition: (
+    storyId: number,
+    currentStatus: StoryStatus,
+    newStatus: StoryStatus,
+  ) => Promise<TransitionResult>;
 }
 
 export function Board({
@@ -39,46 +41,10 @@ export function Board({
   );
   const [animationKey, setAnimationKey] = useState(0);
 
-  const activeStories = useMemo(
-    () => stories.filter((s) => ACTIVE_STATUSES.includes(s.status as StoryStatus)),
-    [stories],
+  const columns = useMemo(
+    () => computeColumns(stories, { searchTerm, priorityFilter }),
+    [stories, searchTerm, priorityFilter],
   );
-
-  const columns = useMemo(() => {
-    return COLUMN_ORDER.map((status) => {
-      let columnStories = activeStories.filter(
-        (s) => s.status === status,
-      );
-
-      // Apply search filter
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase().trim();
-        columnStories = columnStories.filter(
-          (s) =>
-            s.title.toLowerCase().includes(term) ||
-            s.key.toLowerCase().includes(term),
-        );
-      }
-
-      // Apply priority filter
-      if (priorityFilter.size > 0) {
-        columnStories = columnStories.filter((s) =>
-          priorityFilter.has(s.priority),
-        );
-      }
-
-      // Sort: priority ascending, then created_at ascending
-      columnStories.sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        return (
-          new Date(a.created_at).getTime() -
-          new Date(b.created_at).getTime()
-        );
-      });
-
-      return { status, stories: columnStories };
-    });
-  }, [activeStories, searchTerm, priorityFilter]);
 
   const currentColumn = columns[currentColumnIndex];
 

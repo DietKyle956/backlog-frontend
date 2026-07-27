@@ -1,9 +1,5 @@
 import type { Story, Blocker } from "../types";
-import {
-  PRIORITY_LABELS,
-  PRIORITY_COLORS,
-  PRIORITY_BG,
-} from "../types";
+import { resolvePriority } from "../types";
 
 interface StoryCardProps {
   story: Story;
@@ -21,12 +17,8 @@ export function StoryCard({
   const hasUnresolvedBlockers = blockers.some(
     (b) => b.story_id === story.id,
   );
-  const priorityLabel =
-    PRIORITY_LABELS[story.priority] ?? "Low";
-  const priorityColor =
-    PRIORITY_COLORS[story.priority] ?? PRIORITY_COLORS[4];
-  const priorityBg =
-    PRIORITY_BG[story.priority] ?? PRIORITY_BG[4];
+  const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
+    resolvePriority(story.priority);
 
   return (
     <button

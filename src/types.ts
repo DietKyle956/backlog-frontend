@@ -56,6 +56,20 @@ export const PRIORITY_BG: Record<number, string> = {
   4: "rgba(156,163,175,0.15)",
 };
 
+export interface PriorityDisplay {
+  label: string;
+  color: string;
+  bg: string;
+}
+
+export function resolvePriority(priority: number): PriorityDisplay {
+  return {
+    label: PRIORITY_LABELS[priority] ?? "Low",
+    color: PRIORITY_COLORS[priority] ?? PRIORITY_COLORS[4],
+    bg: PRIORITY_BG[priority] ?? PRIORITY_BG[4],
+  };
+}
+
 export interface Project {
   id: number;
   name: string;

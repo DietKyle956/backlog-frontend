@@ -8,18 +8,10 @@ import {
   mockBlockers,
   mockDependencies,
 } from "./test/fixtures";
+import type { AppData } from "./types";
 
-// All mock objects must be created via vi.hoisted since vi.mock is hoisted
+// Mutable store and overrides for the memory adapter
 const mocks = vi.hoisted(() => {
-  const mockFrom = vi.fn();
-  const mockSelect = vi.fn();
-  const mockOrder = vi.fn();
-  const mockIs = vi.fn();
-  const mockUpdate = vi.fn();
-  const mockEq = vi.fn();
-  const on = vi.fn();
-  const subscribe = vi.fn();
-  const mockChannel = { on, subscribe };
   const mockAuth = {
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),
@@ -27,105 +19,77 @@ const mocks = vi.hoisted(() => {
     signOut: vi.fn(),
   };
 
+  // Mutable data store - reset in beforeEach to fresh fixture copies
+  const store = {
+    data: null as AppData | null,
+  };
+
+  // Override for fetchAll (loading test, error test)
+  let fetchAllOverride: (() => Promise<{ data: AppData | null; error: string | null }>) | null = null;
+
   return {
-    mockFrom,
-    mockSelect,
-    mockOrder,
-    mockIs,
-    mockUpdate,
-    mockEq,
-    mockChannel,
     mockAuth,
-    on,
-    subscribe,
+    store,
+    get fetchAllOverride() { return fetchAllOverride; },
+    set fetchAllOverride(v: typeof fetchAllOverride) { fetchAllOverride = v; },
   };
 });
 
+// Mock supabase: only auth is needed; data access goes through the adapter
 vi.mock("./supabase", () => ({
   supabase: {
-    from: mocks.mockFrom,
     auth: mocks.mockAuth,
-    channel: vi.fn(() => mocks.mockChannel),
-    removeChannel: vi.fn(),
   },
 }));
 
-// Helper to resolve mock responses
-function resolveWith(data: unknown) {
-  return { data, error: null };
-}
-
-function setupSupabaseMock(options?: {
-  projects?: unknown[];
-  stories?: unknown[];
-  blockers?: unknown[];
-  dependencies?: unknown[];
-}) {
-  mocks.mockIs.mockReturnValue({ select: mocks.mockSelect });
-  mocks.mockOrder.mockReturnValue(resolveWith(options?.projects ?? mockProjects));
-  mocks.mockSelect.mockImplementation((table?: string) => {
-    const t = typeof table === "string" ? table : "";
-    if (t === "projects") {
-      return {
-        order: () => resolveWith(options?.projects ?? mockProjects),
-      };
-    }
-    if (t === "stories") return resolveWith(options?.stories ?? mockStories);
-    if (t === "blockers")
-      return {
-        is: () => resolveWith(options?.blockers ?? mockBlockers),
-      };
-    if (t === "dependencies")
-      return resolveWith(options?.dependencies ?? mockDependencies);
-    return resolveWith([]);
-  });
-  mocks.mockFrom.mockImplementation((table: string) => ({
-    select: (cols?: string) => {
-      if (table === "projects" && cols === "*") {
-        return {
-          order: () => resolveWith(options?.projects ?? mockProjects),
-        };
+// Mock the Supabase adapter to return a memory adapter
+vi.mock("./adapters/supabase-adapter", () => ({
+  createSupabaseAdapter: () => ({
+    fetchAll: async () => {
+      if (mocks.fetchAllOverride) {
+        return mocks.fetchAllOverride();
       }
-      if (table === "stories")
-        return resolveWith(options?.stories ?? mockStories);
-      if (table === "blockers")
-        return {
-          is: () => resolveWith(options?.blockers ?? mockBlockers),
-        };
-      if (table === "dependencies")
-        return resolveWith(options?.dependencies ?? mockDependencies);
-      return resolveWith([]);
+      return { data: mocks.store.data, error: null };
     },
-    update: mocks.mockUpdate.mockReturnValue({ eq: mocks.mockEq }),
-  }));
-  mocks.mockAuth.getSession.mockResolvedValue({ data: { session: null } });
-  mocks.mockAuth.onAuthStateChange.mockReturnValue({
-    data: { subscription: { unsubscribe: vi.fn() } },
-  });
-  mocks.on.mockReturnValue(mocks.mockChannel);
-  mocks.subscribe.mockReturnValue(mocks.mockChannel);
+    updateStoryStatus: async (storyId: number, status: string) => {
+      if (!mocks.store.data) return { error: "No data loaded" };
+      const story = mocks.store.data.stories.find((s) => s.id === storyId);
+      if (!story) return { error: "Story not found" };
+      story.status = status as never;
+      return {};
+    },
+    onDataChange: () => () => {
+      // no-op in tests: refetch is triggered explicitly
+    },
+  }),
+}));
+
+function resetStore() {
+  mocks.store.data = {
+    projects: [...mockProjects],
+    stories: [...mockStories],
+    blockers: [...mockBlockers],
+    dependencies: [...mockDependencies],
+  };
+  mocks.fetchAllOverride = null;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  setupSupabaseMock();
+  resetStore();
+  mocks.mockAuth.getSession.mockResolvedValue({ data: { session: null } });
+  mocks.mockAuth.onAuthStateChange.mockReturnValue({
+    data: { subscription: { unsubscribe: vi.fn() } },
+  });
 });
 
 describe("BLF-002: Board loads with Backlog column", () => {
   it("shows loading skeleton while fetching data", async () => {
-    // Use promises that never resolve to stay in loading state.
-    const pending = new Promise(() => {});
-    mocks.mockFrom.mockReturnValue({
-      select: () => ({
-        order: () => pending,
-        is: () => pending,
-      }),
-      update: mocks.mockUpdate.mockReturnValue({ eq: mocks.mockEq }),
-    });
+    // Use a promise that never resolves to stay in loading state
+    mocks.fetchAllOverride = () => new Promise(() => {});
 
     render(<App />);
-    // Loading skeleton should show pulse-animated placeholders
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
   });
@@ -138,7 +102,6 @@ describe("BLF-002: Board loads with Backlog column", () => {
     });
 
     await waitFor(() => {
-      // Should show project switcher with first project alphabetically (Alpha Project)
       expect(screen.getByText("Alpha Project")).toBeInTheDocument();
     });
   });
@@ -294,8 +257,9 @@ describe("BLF-002: No login required to view the board", () => {
 
 describe("BLF-002: Error and empty states", () => {
   it("shows error message when data fetch fails", async () => {
-    mocks.mockFrom.mockImplementation(() => {
-      throw new Error("Network error");
+    mocks.fetchAllOverride = async () => ({
+      data: null,
+      error: "Network error",
     });
 
     render(<App />);
@@ -307,12 +271,12 @@ describe("BLF-002: Error and empty states", () => {
   });
 
   it("shows empty state when no projects exist", async () => {
-    setupSupabaseMock({
+    mocks.store.data = {
       projects: [],
       stories: [],
       blockers: [],
       dependencies: [],
-    });
+    };
 
     render(<App />);
 
@@ -346,7 +310,6 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Swipe left (finger moves from right to left) to go to "Ready"
     swipe(getSwipeableArea(), 300, 200);
 
     await waitFor(() => {
@@ -362,14 +325,12 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // First navigate to "Ready" via swipe left
     swipe(getSwipeableArea(), 300, 200);
 
     await waitFor(() => {
       expect(screen.getByText("Ready")).toBeInTheDocument();
     });
 
-    // Now swipe right (finger moves from left to right) to go back to "Backlog"
     swipe(getSwipeableArea(), 200, 300);
 
     await waitFor(() => {
@@ -385,14 +346,12 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Swipe to Ready
     swipe(getSwipeableArea(), 300, 200);
 
     await waitFor(() => {
       expect(screen.getByText("Ready")).toBeInTheDocument();
     });
 
-    // Verify the column title changed
     const headings = screen.getAllByRole("heading", { level: 1 });
     expect(headings[0].textContent).toBe("Ready");
   });
@@ -405,10 +364,8 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Swipe less than 60px threshold (delta = 50px)
     swipe(getSwipeableArea(), 300, 250);
 
-    // Should still be on Backlog
     await waitFor(() => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
@@ -422,22 +379,18 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Navigate to Done (last column) via dot indicators
     await userEvent.click(screen.getByLabelText("Done"));
 
     await waitFor(() => {
       expect(screen.getByText("Done")).toBeInTheDocument();
     });
 
-    // Try to swipe left past Done
     swipe(getSwipeableArea(), 300, 200);
 
-    // Should still be on Done
     await waitFor(() => {
       expect(screen.getByText("Done")).toBeInTheDocument();
     });
 
-    // Next column button should be disabled
     const nextButton = screen.getByLabelText("Next column");
     expect(nextButton).toBeDisabled();
   });
@@ -450,15 +403,12 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Try to swipe right past Backlog (first column)
     swipe(getSwipeableArea(), 200, 400);
 
-    // Should still be on Backlog
     await waitFor(() => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Previous column button should be disabled
     const prevButton = screen.getByLabelText("Previous column");
     expect(prevButton).toBeDisabled();
   });
@@ -471,15 +421,15 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Swipe left to go to Ready
     swipe(getSwipeableArea(), 300, 200);
 
     await waitFor(() => {
       expect(screen.getByText("Ready")).toBeInTheDocument();
     });
 
-    // The content area should have the spring-right animation class
-    expect(getSwipeableArea().classList.contains("animate-spring-in-right")).toBe(true);
+    expect(
+      getSwipeableArea().classList.contains("animate-spring-in-right"),
+    ).toBe(true);
   });
 
   it("applies spring animation class on swipe right", async () => {
@@ -490,21 +440,20 @@ describe("BLF-003: Swipe navigation between columns", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // Go to Ready first
     swipe(getSwipeableArea(), 300, 200);
 
     await waitFor(() => {
       expect(screen.getByText("Ready")).toBeInTheDocument();
     });
 
-    // Swipe right to go back to Backlog
     swipe(getSwipeableArea(), 200, 300);
 
     await waitFor(() => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    // The content area should have the spring-left animation class
-    expect(getSwipeableArea().classList.contains("animate-spring-in-left")).toBe(true);
+    expect(
+      getSwipeableArea().classList.contains("animate-spring-in-left"),
+    ).toBe(true);
   });
 });
