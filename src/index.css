@@ -97,7 +97,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-spring-in-right,
-  .animate-spring-in-left {
+  .animate-spring-in-left,
+  .animate-slide-in-right,
+  .animate-slide-in-left {
     animation: none;
   }
 }

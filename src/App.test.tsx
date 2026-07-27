@@ -457,3 +457,65 @@ describe("BLF-003: Swipe navigation between columns", () => {
     ).toBe(true);
   });
 });
+
+describe("BLF-008: Story detail overlay slides in from right", () => {
+  it("renders overlay with slide-in-right animation class", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    const overlay = document.querySelector(".animate-slide-in-right");
+    expect(overlay).toBeInTheDocument();
+  });
+
+  it("close button dismisses the overlay", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByLabelText("Close detail"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Sign in to edit")).not.toBeInTheDocument();
+    });
+  });
+
+  it("overlay is full-screen", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+    });
+
+    const overlay = document.querySelector(".animate-slide-in-right");
+    expect(overlay).toBeInTheDocument();
+    expect(overlay!.classList.contains("fixed")).toBe(true);
+    expect(overlay!.classList.contains("inset-0")).toBe(true);
+    expect(overlay!.classList.contains("z-50")).toBe(true);
+  });
+});

@@ -46,7 +46,7 @@ export function StoryDetail({
     });
 
   return (
-    <div className="fixed inset-0 z-50 bg-canvas animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-canvas animate-slide-in-right overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-sm border-b border-border-subtle">
         <div className="flex items-center gap-3 px-4 py-3">
