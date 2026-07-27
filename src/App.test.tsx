@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import {
@@ -27,11 +27,28 @@ const mocks = vi.hoisted(() => {
   // Override for fetchAll (loading test, error test)
   let fetchAllOverride: (() => Promise<{ data: AppData | null; error: string | null }>) | null = null;
 
+  // Realtime subscription callback (BLF-015)
+  let dataChangeCallback: (() => void) | null = null;
+
   return {
     mockAuth,
     store,
     get fetchAllOverride() { return fetchAllOverride; },
     set fetchAllOverride(v: typeof fetchAllOverride) { fetchAllOverride = v; },
+    get dataChangeCallback() { return dataChangeCallback; },
+    set dataChangeCallback(v: typeof dataChangeCallback) { dataChangeCallback = v; },
+    triggerDataChange() {
+      // Snapshot store into a fresh reference so React detects the change
+      if (dataChangeCallback && store.data) {
+        store.data = {
+          ...store.data,
+          stories: [...store.data.stories],
+          blockers: [...store.data.blockers],
+          dependencies: [...store.data.dependencies],
+        };
+      }
+      if (dataChangeCallback) dataChangeCallback();
+    },
   };
 });
 
@@ -58,23 +75,28 @@ vi.mock("./adapters/supabase-adapter", () => ({
       story.status = status as never;
       return {};
     },
-    onDataChange: () => () => {
-      // no-op in tests: refetch is triggered explicitly
+    onDataChange: (cb: () => void) => {
+      mocks.dataChangeCallback = cb;
+      return () => {
+        mocks.dataChangeCallback = null;
+      };
     },
   }),
 }));
 
 function resetStore() {
   mocks.store.data = {
-    projects: [...mockProjects],
-    stories: [...mockStories],
-    blockers: [...mockBlockers],
-    dependencies: [...mockDependencies],
+    projects: mockProjects.map((p) => ({ ...p })),
+    stories: mockStories.map((s) => ({ ...s, acceptance_criteria: [...s.acceptance_criteria] })),
+    blockers: mockBlockers.map((b) => ({ ...b })),
+    dependencies: mockDependencies.map((d) => ({ ...d })),
   };
   mocks.fetchAllOverride = null;
+  mocks.dataChangeCallback = null;
 }
 
 beforeEach(() => {
+  cleanup();
   vi.clearAllMocks();
   localStorage.clear();
   resetStore();
@@ -1276,6 +1298,144 @@ describe("BLF-013: Search clear button", () => {
     // Search is cleared, input is empty
     await waitFor(() => {
       expect(searchInput.value).toBe("");
+    });
+  });
+});
+
+describe("BLF-015: Real-time board updates", () => {
+  it("registers onDataChange subscription on mount", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // onDataChange callback should be registered
+    expect(mocks.dataChangeCallback).not.toBeNull();
+    expect(typeof mocks.dataChangeCallback).toBe("function");
+  });
+
+  it("deleted stories disappear without manual refresh when realtime event fires", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+
+    // Simulate story deletion externally
+    mocks.store.data!.stories = mocks.store.data!.stories.filter(
+      (s) => s.id !== 3,
+    );
+
+    // Fire the realtime callback
+    mocks.triggerDataChange();
+
+    await waitFor(() => {
+      expect(screen.queryByText("CIQ-003")).not.toBeInTheDocument();
+    });
+
+    // CIQ-002 should still be there
+    expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+
+    // Story count should decrease
+    expect(screen.getByText("1 story")).toBeInTheDocument();
+  });
+
+  it("new stories appear without manual refresh when realtime event fires", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+
+    // Simulate a new story being added externally (by an agent)
+    const newStory = {
+      id: 10,
+      project_id: 3,
+      key: "CIQ-010",
+      title: "New realtime story",
+      description: "Created by an agent",
+      status: "backlog" as const,
+      acceptance_criteria: [],
+      priority: 2,
+      created_at: "2026-07-20T00:00:00Z",
+      updated_at: "2026-07-20T00:00:00Z",
+      reviewed_by: null,
+    };
+    mocks.store.data!.stories.push(newStory);
+
+    // Fire the realtime callback
+    mocks.triggerDataChange();
+
+    await waitFor(() => {
+      expect(screen.getByText("New realtime story")).toBeInTheDocument();
+    });
+
+    // Story count should update
+    expect(screen.getByText("3 stories")).toBeInTheDocument();
+  });
+
+  it("cards move between columns when status changes via realtime", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+
+    // Simulate status being changed externally (by an agent)
+    const story = mocks.store.data!.stories.find((s) => s.id === 3);
+    expect(story).toBeDefined();
+    story!.status = "in_progress";
+
+    // Fire the realtime callback
+    mocks.triggerDataChange();
+
+    // CIQ-003 should be gone from Backlog
+    await waitFor(() => {
+      expect(screen.queryByText("CIQ-003")).not.toBeInTheDocument();
+    });
+
+    // Navigate to In Progress column
+    const inProgressDot = screen.getByLabelText("In Progress");
+    await userEvent.click(inProgressDot);
+
+    // CIQ-003 should now be in In Progress
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+    });
+  });
+
+  it("blocker changes propagate via realtime", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // CIQ-002 should have blocked indicator initially
+    expect(screen.getByLabelText("Blocked")).toBeInTheDocument();
+
+    // Simulate blocker being resolved externally
+    const blocker = mocks.store.data!.blockers.find((b) => b.id === 1);
+    expect(blocker).toBeDefined();
+    blocker!.resolved_at = "2026-07-20T00:00:00Z";
+
+    // Fire the realtime callback
+    mocks.triggerDataChange();
+
+    // Blocked indicator should be gone
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Blocked")).not.toBeInTheDocument();
     });
   });
 });
