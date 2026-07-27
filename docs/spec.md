@@ -96,6 +96,7 @@ failed → backlog, cancelled
 
 ### Search and filter
 - Text input filters stories in the current Column by title or key match (case-insensitive substring)
+- A clear button (X icon) appears inside the input when the search term is non-empty; clicking it resets the search term
 - Priority filter toggles: show/hide specific priority levels via small toggle chips
 - Search term persists when switching Columns so you can sweep through with the filter active
 
