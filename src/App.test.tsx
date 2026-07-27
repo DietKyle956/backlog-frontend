@@ -1003,7 +1003,7 @@ describe("BLF-013: Search clear button", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText("Search by title or key...");
+    const searchInput = screen.getByPlaceholderText("Search by title or key...") as HTMLInputElement;
     await userEvent.type(searchInput, "auth");
 
     // Clear button should now be visible
@@ -1052,7 +1052,7 @@ describe("BLF-013: Search clear button", () => {
       expect(screen.getByText("Backlog")).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText("Search by title or key...");
+    const searchInput = screen.getByPlaceholderText("Search by title or key...") as HTMLInputElement;
     await userEvent.type(searchInput, "kanban");
 
     // Search filters to matching story
