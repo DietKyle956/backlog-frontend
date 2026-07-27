@@ -14,7 +14,7 @@ export function createSupabaseAdapter(): BoardDataAdapter {
         ] = await Promise.all([
           supabase.from("projects").select("*").order("name"),
           supabase.from("stories").select("*"),
-          supabase.from("blockers").select("*").is("resolved_at", null),
+          supabase.from("blockers").select("*"),
           supabase.from("dependencies").select("*"),
         ]);
 

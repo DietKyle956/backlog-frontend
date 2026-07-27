@@ -15,7 +15,7 @@ export function StoryCard({
   onClick,
 }: StoryCardProps) {
   const hasUnresolvedBlockers = blockers.some(
-    (b) => b.story_id === story.id,
+    (b) => b.story_id === story.id && !b.resolved_at,
   );
   const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
     resolvePriority(story.priority);
