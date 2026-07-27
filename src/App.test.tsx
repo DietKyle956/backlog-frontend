@@ -828,3 +828,156 @@ describe("BLF-009: Story detail overlay content sections", () => {
     // from a Supabase join - the getDepStory helper uses allStories.find()
   });
 });
+
+describe("BLF-012: Terminal view shows cancelled and failed across all projects", () => {
+  it("opens Terminal view when Terminal button is clicked", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      // Terminal view heading is visible
+      const headings = screen.getAllByRole("heading", { level: 1 });
+      expect(headings[0].textContent).toBe("Terminal");
+    });
+  });
+
+  it("shows all terminal stories across all projects regardless of selected project", async () => {
+    // Select Contract IQ (project 3) which has CIQ-004 (cancelled)
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      // CIQ-004 is cancelled (from Contract IQ)
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      // BP-001 is failed (from Beta Project) - should appear even though Beta Project is not selected
+      expect(screen.getByText("BP-001")).toBeInTheDocument();
+    });
+  });
+
+  it("shows project name on each terminal story", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+    });
+
+    // Contract IQ appears in both the project switcher dropdown and in the
+    // terminal story cards (as the project name label)
+    const contractIQElements = screen.getAllByText("Contract IQ");
+    expect(contractIQElements.length).toBeGreaterThanOrEqual(2);
+
+    // BP-001 is in Beta Project
+    expect(screen.getByText("BP-001")).toBeInTheDocument();
+    const betaProjectElements = screen.getAllByText("Beta Project");
+    expect(betaProjectElements.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("groups terminal stories by status with section headers", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+    });
+
+    // Section headers for each status group
+    expect(screen.getByText("Cancelled (1)")).toBeInTheDocument();
+    expect(screen.getByText("Failed (1)")).toBeInTheDocument();
+  });
+
+  it("each terminal story shows key, title, and status badge", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+    });
+
+    // Key and title
+    expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+    expect(screen.getByText("Cancelled story")).toBeInTheDocument();
+
+    // Status badges
+    const cancelledBadges = screen.getAllByText("Cancelled");
+    expect(cancelledBadges.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+  });
+
+  it("shows empty state when no terminal stories exist", async () => {
+    // Remove all terminal stories from the store
+    mocks.store.data!.stories = mocks.store.data!.stories.filter(
+      (s) => s.status !== "cancelled" && s.status !== "failed",
+    );
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("No terminal stories")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText("Cancelled and failed stories appear here"),
+    ).toBeInTheDocument();
+  });
+
+  it("closes Terminal view and returns to board", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Terminal"));
+
+    await waitFor(() => {
+      // Terminal view shows stories
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByLabelText("Close terminal view"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("CIQ-004")).not.toBeInTheDocument();
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+  });
+});
