@@ -72,6 +72,19 @@ export const mockStories: Story[] = [
     updated_at: "2026-07-06T00:00:00Z",
     reviewed_by: null,
   },
+  {
+    id: 6,
+    project_id: 2,
+    key: "BP-001",
+    title: "Failed build",
+    description: "The build pipeline broke",
+    status: "failed",
+    acceptance_criteria: [],
+    priority: 2,
+    created_at: "2026-07-07T00:00:00Z",
+    updated_at: "2026-07-08T00:00:00Z",
+    reviewed_by: null,
+  },
 ];
 
 export const mockBlockers: Blocker[] = [

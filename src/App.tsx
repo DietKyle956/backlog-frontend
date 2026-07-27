@@ -291,9 +291,10 @@ export function App() {
       </div>
 
       {/* Board or Terminal view */}
-      {showTerminal ? (
+      {showTerminal && data ? (
         <TerminalView
-          stories={filteredStories}
+          stories={data.stories}
+          projects={data.projects}
           onReactivate={handleReactivate}
           isAuthenticated={isAuthenticated}
           onClose={() => setShowTerminal(false)}
