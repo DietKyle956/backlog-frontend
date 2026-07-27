@@ -5,7 +5,7 @@ import type {
   Dependency,
   StoryStatus,
 } from "../types";
-import { COLUMN_ORDER, COLUMN_LABELS } from "../types";
+import { COLUMN_LABELS } from "../types";
 import type { TransitionResult } from "../lib/transitions";
 import { computeColumns } from "../lib/columns";
 import { StoryCard } from "./StoryCard";
