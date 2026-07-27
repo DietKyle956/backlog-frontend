@@ -70,7 +70,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 
 ### Data flow
 - On mount, fetch all projects, stories, dependencies, and blockers (both resolved and unresolved) in parallel
-- Subscribe to Supabase Realtime channel for `stories`, `projects`, and `blockers` table changes
+- Subscribe to Supabase Realtime channel for `stories`, `projects`, `blockers`, and `dependencies` table changes
 - On any change event, refetch all data (simple and correct; the dataset is small)
 - Pull-to-refresh triggers a manual refetch
 - Status transitions validate the target against the allowed-transition map and guard against concurrent transitions, then delegate the status update to the `BoardDataAdapter.updateStoryStatus` interface (implemented by the Supabase adapter with the authenticated session)
@@ -110,7 +110,7 @@ failed → backlog, cancelled
 
 ### Real time updates
 - Supabase Realtime channel for `stories` table (INSERT, UPDATE, DELETE)
-- Also subscribe to `projects` and `blockers` changes
+- Also subscribe to `projects`, `blockers`, and `dependencies` changes
 - On any event, refetch all data (full refresh; dataset is small enough that incremental updates add complexity without benefit)
 
 ### Project persistence
