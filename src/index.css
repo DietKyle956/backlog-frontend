@@ -95,7 +95,7 @@ body {
   animation: springInLeft 0.4s ease-out;
 }
 
-/* Legacy slide transition kept for smooth fallback */
+/* Slide-in transition (used by StoryDetail overlay and as alternate name for spring-in) */
 .animate-slide-in-right {
   animation: springInRight 0.4s ease-out;
 }
