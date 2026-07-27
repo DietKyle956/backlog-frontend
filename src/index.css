@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-canvas: #0B0E14;
-  --color-bg-surface: #151A22;
-  --color-bg-surface-raised: #1C2330;
-  --color-bg-surface-hover: #222B3A;
+  --color-canvas: #0B0E14;
+  --color-surface: #151A22;
+  --color-surface-raised: #1C2330;
+  --color-surface-hover: #222B3A;
   --color-border-subtle: #2A3344;
   --color-text-primary: #E8ECF1;
   --color-text-secondary: #8896A6;
