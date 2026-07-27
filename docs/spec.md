@@ -73,7 +73,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 - Subscribe to Supabase Realtime channel for `stories`, `projects`, and `blockers` table changes
 - On any change event, refetch all data (simple and correct; the dataset is small)
 - Pull-to-refresh triggers a manual refetch
-- Status transitions call `supabase.from("stories").update({ status })` with the authenticated session
+- Status transitions validate the target against the allowed-transition map and guard against concurrent transitions, then delegate the status update to the `BoardDataAdapter.updateStoryStatus` interface (implemented by the Supabase adapter with the authenticated session)
 
 ### Auth model
 - Supabase anon key embedded in the client bundle for public reads
@@ -120,13 +120,13 @@ failed → backlog, cancelled
 
 ### What makes a good test
 - Test external behavior, not implementation details. A test should verify what the user sees and can do, not how components manage internal state.
-- Prefer integration tests over unit tests. Mock at the highest seam possible (the Supabase client).
+- Prefer integration tests over unit tests. Mock at the highest seam possible (the `BoardDataAdapter` factory).
 - Test empty states, loading states, and error states explicitly — these are the most common failure modes in data-driven UIs.
 
 ### Seams
-- **Data seam**: Mock `supabase.from().select()` responses to simulate different data scenarios (empty project, project with stories in various statuses, project with dependencies and blockers).
+- **Data seam**: Mock the `createSupabaseAdapter` factory (in `src/adapters/supabase-adapter.ts`) to return an in-memory adapter backed by a mutable data store. Tests control the store contents to simulate different data scenarios (empty project, project with stories in various statuses, project with dependencies and blockers) without hitting Supabase internals.
 - **Auth seam**: Mock `supabase.auth.getSession()` to simulate Viewer (no session) and Owner (valid session) states.
-- **Mutation seam**: Mock `supabase.from().update()` to verify transition calls and test error handling.
+- **Mutation seam**: The adapter mock's `updateStoryStatus` mutates the in-memory store directly, which allows tests to verify transitions by inspecting the store after the call, or to inject errors by returning `{ error: "…" }`.
 
 ### Test scenarios
 - Board renders all 5 Columns with correct story counts
