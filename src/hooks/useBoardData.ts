@@ -15,7 +15,6 @@ export function useBoardData(adapter: BoardDataAdapter): BoardDataState {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
     const result = await adapter.fetchAll();
     if (result.error) {
       setError(result.error);

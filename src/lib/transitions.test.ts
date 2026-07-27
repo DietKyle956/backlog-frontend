@@ -146,17 +146,24 @@ describe("createTransitionRunner", () => {
   });
 
   it("allows transitions after a failed one completes", async () => {
-    const adapter = createStubAdapter("error");
+    let shouldFail = true;
+    const adapter: TransitionAdapter = {
+      updateStoryStatus: async (_storyId, _status) => {
+        if (shouldFail) {
+          shouldFail = false;
+          return { error: "Database error" };
+        }
+        return {};
+      },
+    };
     const runner = createTransitionRunner(adapter);
 
     // First transition fails
     const first = await runner.performTransition(1, "backlog", "ready");
     expect(first.success).toBe(false);
 
-    // But guard is released, so second attempt works (with a success adapter)
-    const successAdapter = createStubAdapter("success");
-    const runner2 = createTransitionRunner(successAdapter);
-    const second = await runner2.performTransition(1, "backlog", "ready");
+    // Same runner's guard is released, so second attempt succeeds
+    const second = await runner.performTransition(1, "backlog", "ready");
     expect(second.success).toBe(true);
   });
 });
