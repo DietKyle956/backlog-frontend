@@ -5,7 +5,7 @@ import type {
   Dependency,
   StoryStatus,
 } from "../types";
-import { COLUMN_LABELS } from "../types";
+import { COLUMN_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "../types";
 import type { TransitionResult } from "../lib/transitions";
 import { computeColumns } from "../lib/columns";
 import { StoryCard } from "./StoryCard";
@@ -149,9 +149,11 @@ export function Board({
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
             {[1, 2, 3, 4].map((p) => {
               const isActive = priorityFilter.size === 0 || priorityFilter.has(p);
+              const label = PRIORITY_LABELS[p];
+              const colorVar = PRIORITY_COLORS[p];
               return (
                 <button
                   key={p}
@@ -167,16 +169,19 @@ export function Board({
                       return next;
                     });
                   }}
-                  className={`w-3 h-3 rounded-full transition-opacity ${
-                    isActive ? "opacity-100" : "opacity-20"
+                  className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md transition-all duration-150 border ${
+                    isActive
+                      ? "border-transparent text-white"
+                      : "border-border-subtle text-text-muted hover:opacity-70"
                   }`}
                   style={{
-                    backgroundColor: ["#F87171", "#FB923C", "#FBBF24", "#9CA3AF"][
-                      p - 1
-                    ],
+                    backgroundColor: isActive ? colorVar : "transparent",
                   }}
-                  aria-label={`Priority ${p}`}
-                />
+                  aria-label={`Filter ${label} priority`}
+                  aria-pressed={priorityFilter.size > 0 && priorityFilter.has(p)}
+                >
+                  {label}
+                </button>
               );
             })}
           </div>
