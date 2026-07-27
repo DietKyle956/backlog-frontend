@@ -1,0 +1,21 @@
+BLF-007 Empty-State Verification Results
+========================================
+
+1. Unit Test (vitest): PASSED
+   - "shows empty state when column has no stories" passes
+   - Asserts "Nothing in Done yet" text appears when Done column is empty
+
+2. Real Browser Verification (Playwright + Chrome): PASSED
+   - "Nothing in Done yet" text: CONFIRMED visible
+   - Old "Nothing here yet" text: CONFIRMED absent
+   - Empty state class: "text-sm text-text-muted/70" (muted, non-intrusive)
+   - Single-line format (one <p> tag): CONFIRMED
+
+3. User Intent Satisfaction:
+   - [x] Message reads "Nothing in [Column Name] yet" with dynamic COLUMN_LABELS
+   - [x] Subtle, non-intrusive styling (text-sm, opacity-70)
+   - [x] Single muted line (was two-line: "Nothing here yet" + "No stories in {column}")
+   - [x] Feels like natural part of column (centered, py-16)
+   - [x] Disappears reactively when stories exist (column content replaces empty div)
+
+4. All 33 App tests pass (no regressions)
