@@ -5,6 +5,7 @@ import { useBoardData } from "./hooks/useBoardData";
 import { useTransition } from "./hooks/useTransition";
 import { useProjectSelection } from "./hooks/useProjectSelection";
 import { Board } from "./components/Board";
+import { TransitionErrorBanner } from "./components/TransitionErrorBanner";
 import { SkeletonCard } from "./components/SkeletonCard";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
@@ -214,16 +215,11 @@ export function App() {
 
       {/* Transition error banner */}
       {transitionError && (
-        <div className="mx-4 mt-3 px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger flex items-center justify-between">
-          <span>{transitionError}</span>
-          <button
-            type="button"
-            onClick={clearTransitionError}
-            className="ml-2 underline text-xs"
-          >
-            Dismiss
-          </button>
-        </div>
+        <TransitionErrorBanner
+          error={transitionError}
+          onDismiss={clearTransitionError}
+          onSignIn={handleSignIn}
+        />
       )}
 
       {/* Board or Terminal view */}

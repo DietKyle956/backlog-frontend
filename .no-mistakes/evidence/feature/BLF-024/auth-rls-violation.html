@@ -1,0 +1,12 @@
+<html>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 24px; max-width: 600px; margin: 0 auto; }
+  h2 { font-size: 16px; color: #8b949e; margin: 0 0 12px 0; font-weight: 500; }
+  .specimen { margin-bottom: 32px; }
+  .raw { font-size: 11px; color: #6e7681; margin: 8px 0 0 0; background: #161b22; padding: 6px 10px; border-radius: 4px; font-family: monospace; }
+  .raw-label { font-size: 10px; color: #484f58; text-transform: uppercase; }
+</style>
+<body><h2>Auth Error — RLS Violation (Supabase raw error)</h2><div class="specimen"><div class="mx-4 mt-3 px-3 py-2.5 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger"><div class="flex items-start justify-between gap-2"><p class="text-sm leading-snug">Your session has expired or you don't have permission to make this change. Please sign in again.</p><button type="button" class="ml-2 underline text-xs flex-shrink-0 hover:text-accent-danger/80 transition-colors">Dismiss</button></div><div class="mt-2 pt-2 border-t border-accent-danger/20"><button type="button" class="text-xs font-medium px-3 py-1 rounded-md
+                         bg-accent-danger/20 text-accent-danger
+                         hover:bg-accent-danger/30 active:scale-95
+                         transition-all duration-100">Sign In to retry</button></div></div></div><p class="raw"><span class="raw-label">Raw error: </span>new row violates row-level security policy for table "stories"</p></body></html>

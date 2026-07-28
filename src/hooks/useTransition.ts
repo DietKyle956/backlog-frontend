@@ -5,6 +5,10 @@ import {
   createTransitionRunner,
   type TransitionResult,
 } from "../lib/transitions";
+import {
+  classifyTransitionError,
+  type ClassifiedError,
+} from "../lib/error-classification";
 
 export interface UseTransitionReturn {
   performTransition: (
@@ -12,14 +16,14 @@ export interface UseTransitionReturn {
     currentStatus: StoryStatus,
     newStatus: StoryStatus,
   ) => Promise<TransitionResult>;
-  error: string | null;
+  error: ClassifiedError | null;
   clearError: () => void;
 }
 
 export function useTransition(
   adapter: Pick<BacklogAdapter, "updateStoryStatus">,
 ): UseTransitionReturn {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ClassifiedError | null>(null);
 
   const runner = useMemo(() => createTransitionRunner(adapter), [adapter]);
 
@@ -36,7 +40,7 @@ export function useTransition(
         newStatus,
       );
       if (!result.success && result.error) {
-        setError(result.error);
+        setError(classifyTransitionError(result.error));
       }
       return result;
     },

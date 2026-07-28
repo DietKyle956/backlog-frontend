@@ -2198,9 +2198,11 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
       const story = mocks.store.data!.stories.find((s) => s.id === 2);
       expect(story!.status).toBe("backlog");
 
-      // Error banner should appear
+      // Error banner should appear with classified message
       await waitFor(() => {
-        expect(screen.getByText("Network error")).toBeInTheDocument();
+        expect(
+          screen.getByText("A network error occurred. Please check your connection and try again."),
+        ).toBeInTheDocument();
       });
     });
 

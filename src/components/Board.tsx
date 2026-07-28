@@ -13,6 +13,7 @@ import { computeColumns } from "../lib/columns";
 import { useTransition } from "../hooks/useTransition";
 import { StoryCard } from "./StoryCard";
 import { StoryDetail } from "./StoryDetail";
+import { TransitionErrorBanner } from "./TransitionErrorBanner";
 
 interface BoardProps {
   stories: Story[];
@@ -206,16 +207,11 @@ export function Board({
     <div className="flex-1 flex flex-col min-h-0">
       {/* Transition error banner */}
       {transitionError && (
-        <div className="mx-4 mt-3 px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger flex items-center justify-between">
-          <span>{transitionError}</span>
-          <button
-            type="button"
-            onClick={clearTransitionError}
-            className="ml-2 underline text-xs"
-          >
-            Dismiss
-          </button>
-        </div>
+        <TransitionErrorBanner
+          error={transitionError}
+          onDismiss={clearTransitionError}
+          onSignIn={onSignIn}
+        />
       )}
 
       {/* Header: Column title + dash indicators */}
