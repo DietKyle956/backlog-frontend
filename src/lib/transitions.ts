@@ -1,15 +1,9 @@
 import type { StoryStatus } from "../types";
+import type { BacklogAdapter } from "./adapter";
 
 export interface TransitionResult {
   success: boolean;
   error?: string;
-}
-
-export interface TransitionAdapter {
-  updateStoryStatus: (
-    storyId: number,
-    status: StoryStatus,
-  ) => Promise<{ error?: string }>;
 }
 
 export interface TransitionRunner {
@@ -35,7 +29,7 @@ export function getAllowedTargets(status: StoryStatus): StoryStatus[] {
 }
 
 export function createTransitionRunner(
-  adapter: TransitionAdapter,
+  adapter: Pick<BacklogAdapter, "updateStoryStatus">,
 ): TransitionRunner {
   let transitioning = false;
 
