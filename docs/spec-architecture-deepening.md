@@ -68,7 +68,7 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - Define `ResolvedDependency` type: `{ depends_on_id, storyKey, storyTitle, isDone }` where `isDone` is a boolean derived from the target story's status.
 - `Board.tsx` resolves these via `useMemo` when `selectedStory` is set, before passing to `StoryDetail`. The linear `.find()` calls move from StoryDetail's render to Board's memoized resolution.
 - `StoryDetail` drops the `allStories`, `blockers`, and `dependencies` props. It receives `resolvedBlockers: ResolvedBlocker[]` and `resolvedDependencies: ResolvedDependency[]` instead.
-- `StoryDetail` retains `isAuthenticated` and `onTransition` for now (full extraction to `useTransition` hook is tracked by a follow-up).
+- `StoryDetail` retains `isAuthenticated` (auth-gating for the transition UI). The `onTransition` callback was extracted to the `useTransition` hook (Candidate A ✅). A new optional `onRefresh` callback enables board refresh after successful transitions, called before `onClose`.
 
 ### Candidate C: Unified adapter interface ✅ Implemented (BLF-027)
 
