@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLF-025: Reactivate Confirmation Dialog</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          canvas: '#0B0E14',
+          surface: '#151A22',
+          'surface-raised': '#1C2330',
+          'surface-hover': '#222B3A',
+          'border-subtle': '#2A3344',
+          'text-primary': '#E8ECF1',
+          'text-secondary': '#8896A6',
+          'text-muted': '#556170',
+          accent: '#60A5FA',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: #0B0E14;
+    color: #E8ECF1;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.15s ease-out;
+  }
+</style>
+</head>
+<body class="min-h-dvh bg-canvas">
+
+<div class="p-6 max-w-lg mx-auto">
+  <h1 class="text-lg font-bold text-text-primary mb-2">BLF-025 Visual Evidence</h1>
+  <p class="text-sm text-text-secondary mb-6">The confirmation prompt shown below reproduces the exact component structure and styling from TerminalView.tsx.</p>
+
+  <!-- Context: Terminal story card with reactivate button -->
+  <div class="bg-surface border border-border-subtle rounded-xl p-6 mb-6">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-semibold text-accent">CIQ-004</span>
+      <span class="text-xs font-medium px-2 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">Cancelled</span>
+    </div>
+    <h3 class="text-base font-semibold text-text-primary mb-1">Update CI/CD pipeline</h3>
+    <p class="text-xs text-text-muted mb-2">Project: CoreIQ</p>
+
+    <!-- The Reactivate button (as implemented) -->
+    <button type="button"
+      class="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
+             bg-accent/15 text-accent border border-accent/30
+             hover:bg-accent/20 active:scale-[0.98]
+             transition-all duration-100">
+      Reactivate to Backlog
+    </button>
+  </div>
+
+  <!-- Arrow indicator -->
+  <div class="flex justify-center mb-6">
+    <span class="text-text-muted text-lg">&#x2193; clicking "Reactivate to Backlog" opens &#x2193;</span>
+  </div>
+
+  <!-- The confirmation dialog (exact structure from TerminalView.tsx) -->
+  <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- Dialog -->
+    <div role="dialog" aria-modal="true" aria-labelledby="reactivate-dialog-heading"
+      class="relative bg-surface rounded-xl border border-border-subtle shadow-2xl p-6 max-w-sm w-full animate-scale-in">
+
+      <h2 id="reactivate-dialog-heading" class="text-lg font-bold text-text-primary mb-2">
+        Reactivate Story
+      </h2>
+
+      <p class="text-sm text-text-secondary mb-6">
+        Are you sure you want to reactivate
+        <span class="font-semibold text-text-primary">CIQ-004</span>
+        from
+        <span class="font-semibold">Cancelled</span>
+        back to Backlog?
+      </p>
+
+      <div class="flex gap-3">
+        <button type="button"
+          class="flex-1 px-4 py-2 text-sm font-medium rounded-lg
+                 bg-surface-raised text-text-secondary border border-border-subtle
+                 hover:bg-surface-hover transition-colors">
+          Cancel
+        </button>
+        <button type="button"
+          class="flex-1 px-4 py-2 text-sm font-medium rounded-lg
+                 bg-accent text-white
+                 hover:opacity-90 active:scale-[0.98]
+                 transition-all duration-100">
+          Reactivate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Severity indicators -->
+  <div class="fixed bottom-4 left-4 right-4">
+    <div class="bg-surface border border-border-subtle rounded-xl p-4 max-w-sm mx-auto">
+      <p class="text-xs text-text-secondary mb-2">The dialog also supports these behaviors (tested):</p>
+      <ul class="text-xs text-text-muted space-y-1">
+        <li class="flex items-center gap-1.5">
+          <span class="text-accent-success text-xs">&#x2713;</span> Escape key dismisses the dialog
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="text-accent-success text-xs">&#x2713;</span> Tab cycles focus within dialog (focus trap)
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="text-accent-success text-xs">&#x2713;</span> Clicking backdrop dismisses the dialog
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="text-accent-success text-xs">&#x2713;</span> Cancel dismisses without reactivating
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="text-accent-success text-xs">&#x2713;</span> Reactivate transitions story to backlog
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
