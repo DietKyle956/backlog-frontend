@@ -1891,10 +1891,10 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
     await userEvent.click(screen.getByText("CIQ-002"));
 
     await waitFor(() => {
-      // Transition section should be visible with buttons
       expect(screen.getByText("Transition")).toBeInTheDocument();
-      // "Sign in to edit" should not appear when authenticated
       expect(screen.queryByText("Sign in to edit")).not.toBeInTheDocument();
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+      expect(screen.getByText("Cancelled")).toBeInTheDocument();
     });
   });
 
