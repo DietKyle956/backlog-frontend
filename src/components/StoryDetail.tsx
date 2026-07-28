@@ -1,4 +1,4 @@
-import type { Story, Blocker, Dependency, StoryStatus } from "../types";
+import type { Story, Blocker, Dependency } from "../types";
 import { COLUMN_LABELS, resolvePriority } from "../types";
 import { getAllowedTargets } from "../lib/transitions";
 import type { BacklogAdapter } from "../lib/adapter";
