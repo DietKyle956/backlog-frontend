@@ -18,7 +18,7 @@ export function TerminalView({
   isAuthenticated,
   onClose,
 }: TerminalViewProps) {
-  const { performTransition } = useTransition(adapter);
+  const { performTransition, error, clearError } = useTransition(adapter);
   const terminalStories = stories.filter((s) =>
     TERMINAL_STATUSES.includes(s.status as StoryStatus),
   );
@@ -61,25 +61,39 @@ export function TerminalView({
         {story.title}
       </h3>
       {isAuthenticated && (
-        <button
-          type="button"
-          onClick={async () => {
-            const result = await performTransition(
-              story.id,
-              story.status as StoryStatus,
-              "backlog",
-            );
-            if (result.success) {
-              onClose();
-            }
-          }}
-          className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
-                     bg-accent/15 text-accent border border-accent/30
-                     hover:bg-accent/20 active:scale-[0.98]
-                     transition-all duration-100"
-        >
-          Reactivate to Backlog
-        </button>
+        <>
+          {error && (
+            <div className="px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger">
+              {error}
+              <button
+                type="button"
+                onClick={clearError}
+                className="ml-2 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={async () => {
+              const result = await performTransition(
+                story.id,
+                story.status as StoryStatus,
+                "backlog",
+              );
+              if (result.success) {
+                onClose();
+              }
+            }}
+            className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
+                       bg-accent/15 text-accent border border-accent/30
+                       hover:bg-accent/20 active:scale-[0.98]
+                       transition-all duration-100"
+          >
+            Reactivate to Backlog
+          </button>
+        </>
       )}
     </div>
   );

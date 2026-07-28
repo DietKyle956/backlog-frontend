@@ -120,7 +120,15 @@ describe("useTransition", () => {
   });
 
   it("clears previous error before starting a new transition", async () => {
-    const adapter = createStubAdapter("error");
+    let shouldFail = true;
+    const adapter: Pick<BacklogAdapter, "updateStoryStatus"> = {
+      updateStoryStatus: async (_storyId, _status) => {
+        if (shouldFail) {
+          return { error: "Database error" };
+        }
+        return {};
+      },
+    };
     const { result } = renderHook(() => useTransition(adapter));
 
     // First transition fails
@@ -129,16 +137,13 @@ describe("useTransition", () => {
     });
     expect(result.current.error).toBe("Database error");
 
-    // Switch to success adapter, second transition succeeds
-    const successAdapter = createStubAdapter("success");
-    const { result: result2 } = renderHook(() => useTransition(successAdapter));
-
+    // Second transition succeeds on the same hook instance
+    shouldFail = false;
     await act(async () => {
-      await result2.current.performTransition(2, "backlog", "ready");
+      await result.current.performTransition(2, "backlog", "ready");
     });
 
-    // Error from first hook is irrelevant; new hook starts clean
-    expect(result2.current.error).toBeNull();
+    expect(result.current.error).toBeNull();
   });
 
   it("returns success for valid transition and keeps error null", async () => {
