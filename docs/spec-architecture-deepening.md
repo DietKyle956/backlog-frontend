@@ -4,7 +4,7 @@
 
 The codebase has five shallow spots where complexity is either scattered across callers or duplicated across modules. These make the code harder to test, harder for agents to navigate, and harder to modify safely:
 
-1. **Transition-error flow spans four modules.** `App.tsx` acts as a pass-through shim between `StoryDetail`/`TerminalView` and the `TransitionRunner`. A call to transition a Story threads through `App` solely to add error-toast wiring. This puts 25 lines of shallow orchestration in the root component.
+1. ~~**Transition-error flow spans four modules.** `App.tsx` acts as a pass-through shim between `StoryDetail`/`TerminalView` and the `TransitionRunner`. A call to transition a Story threads through `App` solely to add error-toast wiring. This puts 25 lines of shallow orchestration in the root component.~~ ✅ Resolved (BLF-028, refined by BLF-023) — `useTransition` is now called in `Board` and `App` (the orchestrating components). `StoryDetail` and `TerminalView` receive an `onOptimisticTransition` callback. Error display moved to a board-level dismissible banner.
 
 2. ~~**StoryDetail receives unresolved reference arrays.** To display a Blocker's blocking Story key or a Dependency's target Story status, `StoryDetail` receives the full `allStories` array and runs linear `.find()` lookups at render time. Seven props, three of which are raw reference arrays.~~ ✅ Resolved (BLF-030) — cross-references now pre-resolved in `Board` via `useMemo`, `StoryDetail` receives `ResolvedBlocker[]` and `ResolvedDependency[]`.
 
@@ -58,9 +58,9 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - The hook calls `createTransitionRunner(adapter)` internally and manages `error` state via `useState`.
 - `performTransition` accepts `(storyId, currentStatus, newStatus)` and calls the runner. On success it returns the result. On failure it sets the `error` state.
 - `clearError` resets the error to `null`.
-- `StoryDetail` and `TerminalView` import `useTransition` directly instead of receiving `onTransition`/`onReactivate` as props.
-- `App.tsx` drops `handleTransition`, `handleReactivate`, `transitionError`, and the toast markup (~68 lines).
-- The detail overlay closes on successful transition (a UX win that comes for free once the hook owns the flow).
+- ~~`StoryDetail` and `TerminalView` import `useTransition` directly.~~ Refined by BLF-023: `StoryDetail` and `TerminalView` now receive an `onOptimisticTransition` callback prop. `useTransition` is called in `Board` (for detail-overlay transitions) and `App` (for TerminalView transitions), which own the orchestration and error-banner display.
+- ~~`App.tsx` drops `handleTransition`, `handleReactivate`, `transitionError`, and the toast markup.~~ Partially reinstated by BLF-023: `Board.tsx` and `App.tsx` each call `useTransition` and render a dismissible transition-error banner at the board level (not in the overlay).
+- ~~The detail overlay closes on successful transition.~~ Enhanced by BLF-023: the overlay closes immediately on tap (before the server confirms), providing optimistic responsiveness. On failure the card reverts to its original position.
 
 ### Candidate B: Pre-resolved detail props ✅ Implemented (BLF-030)
 
@@ -68,7 +68,7 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - Define `ResolvedDependency` type: `{ depends_on_id, storyKey, storyTitle, isDone }` where `isDone` is a boolean derived from the target story's status.
 - `Board.tsx` resolves these via `useMemo` when `selectedStory` is set, before passing to `StoryDetail`. The linear `.find()` calls move from StoryDetail's render to Board's memoized resolution.
 - `StoryDetail` drops the `allStories`, `blockers`, and `dependencies` props. It receives `resolvedBlockers: ResolvedBlocker[]` and `resolvedDependencies: ResolvedDependency[]` instead.
-- `StoryDetail` retains `isAuthenticated` (auth-gating for the transition UI). The `onTransition` callback was extracted to the `useTransition` hook (Candidate A ✅). A new optional `onRefresh` callback enables board refresh after successful transitions, called before `onClose`.
+- `StoryDetail` retains `isAuthenticated` (auth-gating for the transition UI). A new `onOptimisticTransition` callback (introduced in BLF-023) replaces the earlier `onRefresh` callback from Candidate A. It orchestrates an optimistic status update, immediate overlay close, and server transition, with automatic rollback on failure.
 
 ### Candidate C: Unified adapter interface ✅ Implemented (BLF-027)
 
@@ -160,7 +160,7 @@ The candidates are designed to compose without conflicts, but the recommended or
 
 ## Out of Scope
 
-- **Optimistic updates**: The transition UX improvement (auto-close overlay on success) is in scope as a side-effect of candidate A. Full optimistic update with rollback is out of scope — it requires coordination between the hook and the realtime subscription to avoid double-renders.
+- **Optimistic updates**: ~~Previously out of scope.~~ ✅ Implemented (BLF-023) — the board now applies optimistic status updates on transition tap (card moves immediately), closes the overlay right away, and reverts on failure. Realtime refetches clear the optimistic override without visual flicker.
 - **Progressive data loading**: Splitting `useBoardData` into independent hooks per table is out of scope. The current all-or-nothing fetch is appropriate for the dataset size.
 - **Error Boundary**: Adding a React Error Boundary is out of scope for this deepening. It's a separate concern from module consolidation.
 - **Environment-based Supabase config**: Moving Supabase credentials to Vite env vars is out of scope. The hardcoded publishable key is safe for the public-repo use case per ADR-0001.
@@ -172,4 +172,4 @@ The candidates are designed to compose without conflicts, but the recommended or
 - The domain model in `CONTEXT.md` is the canonical vocabulary. All new modules, types, and tests use the terms Story, Transition, Board, Column, Blocker, Dependency, Project, Priority, Owner, and Viewer.
 - ADR-0001 (public-read, owner-write auth model) is unaffected. Candidates A and D move auth-gated behaviour into hooks but do not change the auth mechanism.
 - The existing test suite (85+ assertions across 6 suites) must pass at every step. No candidate should require skipping or deleting tests to land.
-- Candidate A is the top recommendation because it has the highest leverage: two call sites (StoryDetail + TerminalView) get the same transition + error capability through one hook interface, and the UX improves as a side-effect (overlay auto-closes on success).
+- Candidate A was the top recommendation because it consolidated transition logic into a single `useTransition` hook with two call sites. This was further refined in BLF-023: `useTransition` moved into the orchestrating components (`Board` and `App`), and `StoryDetail`/`TerminalView` received an `onOptimisticTransition` callback that applies optimistic status updates for responsive board feel with automatic rollback on failure.
