@@ -3,6 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useTransition } from "./useTransition";
 import type { BacklogAdapter } from "../lib/adapter";
 import type { StoryStatus } from "../types";
+import type { ClassifiedError } from "../lib/error-classification";
 
 function createStubAdapter(
   behavior?: "success" | "error",
@@ -81,7 +82,8 @@ describe("useTransition", () => {
       await result.current.performTransition(1, "backlog", "ready");
     });
 
-    expect(result.current.error).toBe("Database error");
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error!.raw).toBe("Database error");
   });
 
   it("returns error result for invalid transition", async () => {
@@ -99,7 +101,8 @@ describe("useTransition", () => {
 
     expect(transitionResult!.success).toBe(false);
     expect(transitionResult!.error).toContain("Invalid transition");
-    expect(result.current.error).toContain("Invalid transition");
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error!.raw).toContain("Invalid transition");
   });
 
   it("clearError resets error to null", async () => {
@@ -110,7 +113,8 @@ describe("useTransition", () => {
       await result.current.performTransition(1, "backlog", "ready");
     });
 
-    expect(result.current.error).toBe("Database error");
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error!.raw).toBe("Database error");
 
     act(() => {
       result.current.clearError();
@@ -135,7 +139,8 @@ describe("useTransition", () => {
     await act(async () => {
       await result.current.performTransition(1, "backlog", "ready");
     });
-    expect(result.current.error).toBe("Database error");
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error!.raw).toBe("Database error");
 
     // Second transition succeeds on the same hook instance
     shouldFail = false;
@@ -161,5 +166,64 @@ describe("useTransition", () => {
 
     expect(transitionResult!.success).toBe(true);
     expect(result.current.error).toBeNull();
+  });
+
+  it("classifies network errors from adapter", async () => {
+    const adapter: Pick<BacklogAdapter, "updateStoryStatus"> = {
+      updateStoryStatus: async () => {
+        return { error: "Failed to fetch" };
+      },
+    };
+    const { result } = renderHook(() => useTransition(adapter));
+
+    await act(async () => {
+      await result.current.performTransition(1, "backlog", "ready");
+    });
+
+    expect(result.current.error?.type).toBe("network");
+    expect(result.current.error?.message).toContain("network");
+    expect(result.current.error?.action).toEqual({
+      label: "Retry",
+      handler: "retry",
+    });
+  });
+
+  it("classifies auth errors from adapter with sign-in action", async () => {
+    const adapter: Pick<BacklogAdapter, "updateStoryStatus"> = {
+      updateStoryStatus: async () => {
+        return { error: "JWT expired" };
+      },
+    };
+    const { result } = renderHook(() => useTransition(adapter));
+
+    await act(async () => {
+      await result.current.performTransition(1, "backlog", "ready");
+    });
+
+    expect(result.current.error?.type).toBe("auth");
+    expect(result.current.error?.message).toContain("session");
+    expect(result.current.error?.action).toEqual({
+      label: "Sign In",
+      handler: "sign-in",
+    });
+  });
+
+  it("classifies rls errors from adapter as auth", async () => {
+    const adapter: Pick<BacklogAdapter, "updateStoryStatus"> = {
+      updateStoryStatus: async () => {
+        return {
+          error:
+            'new row violates row-level security policy for table "stories"',
+        };
+      },
+    };
+    const { result } = renderHook(() => useTransition(adapter));
+
+    await act(async () => {
+      await result.current.performTransition(1, "backlog", "ready");
+    });
+
+    expect(result.current.error?.type).toBe("auth");
+    expect(result.current.error?.action?.handler).toBe("sign-in");
   });
 });
