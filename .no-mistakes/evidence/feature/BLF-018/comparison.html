@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLF-018 Error vs Empty State Comparison</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0B0E14;
+      color: #E8ECF1;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
+      margin: 0 0 8px 0;
+      color: #E8ECF1;
+    }
+    .subtitle {
+      color: #8896A6;
+      font-size: 13px;
+      text-align: center;
+      margin: 0 0 24px 0;
+    }
+    .cards {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .card {
+      flex: 1;
+      background: #151A22;
+      border: 1px solid #2A3344;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #2A3344;
+    }
+    .error-header { background: rgba(248,113,113,0.08); color: #F87171; }
+    .empty-header { background: rgba(136,150,166,0.08); color: #8896A6; }
+    .card-body {
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 320px;
+    }
+    .error-icon-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(248,113,73,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .card-heading {
+      font-size: 18px;
+      font-weight: 600;
+      color: #E8ECF1;
+      margin: 0 0 4px 0;
+    }
+    .card-subtext {
+      font-size: 14px;
+      color: #8896A6;
+      margin: 4px 0 0 0;
+      line-height: 1.5;
+    }
+    .error-detail {
+      margin-top: 16px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #556170;
+      background: #1C2330;
+      border-radius: 8px;
+      padding: 8px 12px;
+      word-break: break-all;
+      max-width: 100%;
+    }
+    .retry-btn {
+      margin-top: 20px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      background: #60A5FA;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .retry-btn:hover { opacity: 0.9; }
+    .divider { color: #2A3344; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>BLF-018: Error State Visual Distinction</h1>
+  <p class="subtitle">The error state (left) must be visually distinct from the empty state (right) with an error icon, clear heading, descriptive subtext, and a retry button.</p>
+  <div class="cards">
+    <!-- Error State -->
+    <div class="card">
+      <div class="card-header error-header">Error State</div>
+      <div class="card-body">
+        <div class="error-icon-wrapper">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <p class="card-heading">Failed to load data</p>
+        <p class="card-subtext">Could not load board data from the server. Please check your connection and try again.</p>
+        <div class="error-detail">Network error</div>
+        <button class="retry-btn">Try Again</button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="card">
+      <div class="card-header empty-header">Empty State</div>
+      <div class="card-body">
+        <p class="card-heading">No projects found</p>
+        <p class="card-subtext">Create a project in the backlog database to get started.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -307,9 +307,38 @@ describe("BLF-002: Error and empty states", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+      expect(screen.getByText("Failed to load data")).toBeInTheDocument();
     });
+    expect(
+      screen.getByText(
+        "Could not load board data from the server. Please check your connection and try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Network error")).toBeInTheDocument();
     expect(screen.getByText("Try Again")).toBeInTheDocument();
+  });
+
+  it("error state has visual distinction from empty state", async () => {
+    // Error state should have an error icon container
+    mocks.fetchAllOverride = async () => ({
+      data: null,
+      error: "Test error",
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to load data")).toBeInTheDocument();
+    });
+
+    // Error state should have the error icon (the red circle SVG is aria-hidden)
+    const errorIcon = document.querySelector('[aria-hidden="true"]');
+    expect(errorIcon).toBeInTheDocument();
+    // The icon SVG should be inside a red-tinted circle container
+    expect(errorIcon!.closest(".bg-red-500\\/10")).toBeInTheDocument();
+
+    // Error state should NOT show "No projects found" (empty state text)
+    expect(screen.queryByText("No projects found")).not.toBeInTheDocument();
   });
 
   it("shows empty state when no projects exist", async () => {

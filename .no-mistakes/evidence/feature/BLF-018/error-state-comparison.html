@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLF-018 Error State</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@4/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .bg-canvas { background-color: #0d1117; }
+    .text-text-primary { color: #e6edf3; }
+    .text-text-secondary { color: #8b949e; }
+    .text-text-muted { color: #6e7681; }
+    .bg-surface-raised { background-color: #21262d; }
+    .bg-accent { background-color: #58a6ff; }
+  </style>
+</head>
+<body class="bg-canvas">
+  <!-- Error state - exact copy from App.tsx -->
+  <div class="min-h-dvh bg-canvas flex flex-col items-center justify-center p-4">
+    <div class="text-center space-y-4 max-w-sm">
+      <!-- Error icon -->
+      <div class="flex justify-center">
+        <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-red-500"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+      </div>
+      <div>
+        <p class="text-lg font-semibold text-text-primary">
+          Failed to load data
+        </p>
+        <p class="text-sm text-text-secondary mt-1">
+          Could not load board data from the server. Please check your
+          connection and try again.
+        </p>
+      </div>
+      <p class="text-xs text-text-muted font-mono bg-surface-raised rounded-lg px-3 py-2 break-all">
+        Network error
+      </p>
+      <button
+        type="button"
+        class="px-6 py-2.5 text-sm font-medium rounded-lg
+               bg-accent text-white hover:opacity-90 active:scale-95
+               transition-all duration-100"
+      >
+        Try Again
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty state for comparison -->
+  <div class="min-h-dvh bg-canvas flex flex-col items-center justify-center p-4" style="border-top: 2px solid #30363d;">
+    <div class="text-center space-y-2">
+      <p class="text-lg font-semibold text-text-primary">
+        No projects found
+      </p>
+      <p class="text-sm text-text-secondary">
+        Create a project in the backlog database to get started.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
