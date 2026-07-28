@@ -81,13 +81,13 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - Delete the interface declarations from `lib/data.ts` and `lib/transitions.ts`. The `TransitionResult` and `TransitionRunner` types stay in `lib/transitions.ts` since they're runner concepts, not adapter concepts.
 - `lib/data.ts` is removed (its only export was the interface).
 
-### Candidate D: useProjectSelection hook
+### Candidate D: useProjectSelection hook ✅ Implemented (BLF-029)
 
-- Create `src/hooks/useProjectSelection.ts` exporting `useProjectSelection(data, adapter?)`.
+- Create `src/hooks/useProjectSelection.ts` exporting `useProjectSelection(data)`.
 - The hook returns `{ selectedProject, selectProject, filteredStories }`.
-- Internally: reads localStorage on init, falls back to first project alphabetically, saves to localStorage on `selectProject`, filters stories by `project_id`.
+- Internally: reads localStorage on init, falls back to first project in insertion order, saves to localStorage on `selectProject`, filters stories by `project_id`.
 - The `initialized` boolean becomes an internal `useRef` gate — callers never see it.
-- `App.tsx` replaces `selectedProjectId`, `handleProjectChange`, `filteredStories`, `initialized`, and the restore-useEffect with one call to `useProjectSelection`.
+- `App.tsx` drops `selectedProjectId`, `handleProjectChange`, `filteredStories`, `initialized`, and the restore-useEffect in favor of one call to `useProjectSelection`.
 
 ### Candidate E: Priority consolidation
 
@@ -102,7 +102,7 @@ The candidates are designed to compose without conflicts, but the recommended or
 
 1. ~~**Candidate C first** (unified adapter)~~ ✅ Done (BLF-027)
 2. ~~**Candidate A** (useTransition hook)~~ ✅ Done (BLF-028)
-3. **Candidate D** (useProjectSelection hook) — further shrinks App.tsx.
+3. ~~**Candidate D** (useProjectSelection hook)~~ ✅ Done (BLF-029)
 4. **Candidate B** (pre-resolved detail props) — shrinks StoryDetail's interface. Depends on A (the hook removes `onTransition` and `isAuthenticated` from the interface anyway).
 5. **Candidate E** (priority consolidation) — independent cleanup, can land any time.
 
@@ -138,14 +138,16 @@ The candidates are designed to compose without conflicts, but the recommended or
 - Test: `transitions.test.ts` uses `Pick<BacklogAdapter, 'updateStoryStatus'>` stub.
 - No behavioural changes — existing tests serve as the regression net.
 
-### Candidate D tests
+### Candidate D tests ✅ Implemented
 
 - **Seam**: The `useProjectSelection` hook interface. Tests mount the hook with mock project data.
 - Test: Restores saved project from localStorage.
-- Test: Falls back to first project alphabetically when no localStorage value.
+- Test: Falls back to first project in insertion order when no localStorage value.
 - Test: `selectProject` updates selected project and persists to localStorage.
 - Test: `filteredStories` filters by selected project ID.
-- **Prior art**: Existing App.test.tsx tests for project persistence (BLF-002). These become hook-level tests.
+- Test: Re-initialization guard prevents reset when data reference changes.
+- Test: Handles invalid localStorage values and localStorage errors gracefully.
+- **Prior art**: Existing App.test.tsx tests for project persistence (BLF-002) remain as integration-level coverage; hook-level tests are in `src/hooks/useProjectSelection.test.ts`.
 
 ### Candidate E tests
 

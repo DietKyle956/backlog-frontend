@@ -115,7 +115,7 @@ failed → backlog, cancelled
 
 ### Project persistence
 - Last viewed project ID saved to localStorage
-- On load, restore the last project; default to the first project alphabetically if none saved
+- On load, restore the last project; default to the first project in insertion order if none saved
 
 ## Testing Decisions
 
