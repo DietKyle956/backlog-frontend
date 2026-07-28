@@ -64,6 +64,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 - `App` — top-level: project switcher, Terminal view toggle, Board or Terminal view rendering
 - `Board` — Column navigation (swipe + buttons), renders current Column's Story cards, search/filter bar
 - `StoryCard` — card in the Column list: key badge, priority badge, blocked/dependency indicators, title, description preview, priority stripe
+- `SkeletonCard` — loading placeholder that mirrors StoryCard's exact shape and layout with shimmer animation
 - `StoryDetail` — full-screen overlay: back button, description, acceptance criteria checklist, dependencies with status pills, blockers with red warnings, transition buttons (gated by auth), metadata footer
 - `TerminalView` — cancelled/failed story list across all projects, with Reactivate action
 - `useBoardData` — data fetching hook: fetches all tables, subscribes to Realtime changes, exposes refetch for pull-to-refresh

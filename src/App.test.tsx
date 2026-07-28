@@ -112,8 +112,28 @@ describe("BLF-002: Board loads with Backlog column", () => {
     mocks.fetchAllOverride = () => new Promise(() => {});
 
     render(<App />);
-    const skeletons = document.querySelectorAll(".animate-pulse");
+    const skeletons = document.querySelectorAll(".skeleton-shimmer");
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it("renders skeleton cards that match the shape and layout of story cards", async () => {
+    // Use a promise that never resolves to stay in loading state
+    mocks.fetchAllOverride = () => new Promise(() => {});
+
+    render(<App />);
+
+    // Each SkeletonCard should have the same container classes as StoryCard
+    const skeletonCards = document.querySelectorAll('[aria-hidden="true"]');
+    expect(skeletonCards.length).toBeGreaterThanOrEqual(5);
+
+    // Verify skeleton cards have the expected structure
+    const firstSkeleton = skeletonCards[0];
+    expect(firstSkeleton.classList.contains("bg-surface")).toBe(true);
+    expect(firstSkeleton.classList.contains("rounded-xl")).toBe(true);
+
+    // Each skeleton card should have shimmer elements
+    const shimmerElements = firstSkeleton.querySelectorAll(".skeleton-shimmer");
+    expect(shimmerElements.length).toBeGreaterThanOrEqual(6);
   });
 
   it("renders the Backlog column by default on first visit", async () => {
