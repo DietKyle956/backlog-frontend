@@ -847,7 +847,8 @@ describe("BLF-009: Story detail overlay content sections", () => {
     expect(screen.getByText("CIQ-001")).toBeInTheDocument();
 
     // The blocking story key is resolved from in-memory allStories, not
-    // from a Supabase join - the getDepStory helper uses allStories.find()
+    // from a Supabase join - Board resolves it via useMemo before passing
+    // resolvedBlockers to StoryDetail.
   });
 });
 

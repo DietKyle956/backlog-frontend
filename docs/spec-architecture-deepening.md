@@ -6,7 +6,7 @@ The codebase has five shallow spots where complexity is either scattered across 
 
 1. **Transition-error flow spans four modules.** `App.tsx` acts as a pass-through shim between `StoryDetail`/`TerminalView` and the `TransitionRunner`. A call to transition a Story threads through `App` solely to add error-toast wiring. This puts 25 lines of shallow orchestration in the root component.
 
-2. **StoryDetail receives unresolved reference arrays.** To display a Blocker's blocking Story key or a Dependency's target Story status, `StoryDetail` receives the full `allStories` array and runs linear `.find()` lookups at render time. Seven props, three of which are raw reference arrays.
+2. ~~**StoryDetail receives unresolved reference arrays.** To display a Blocker's blocking Story key or a Dependency's target Story status, `StoryDetail` receives the full `allStories` array and runs linear `.find()` lookups at render time. Seven props, three of which are raw reference arrays.~~ ✅ Resolved (BLF-030) — cross-references now pre-resolved in `Board` via `useMemo`, `StoryDetail` receives `ResolvedBlocker[]` and `ResolvedDependency[]`.
 
 3. **Two adapter interfaces that never vary independently.** `BoardDataAdapter` (in `lib/data.ts`) and `TransitionAdapter` (in `lib/transitions.ts`) are always satisfied by the same concrete adapter. The `updateStoryStatus` method shape appears in both. The split creates two interface declarations where one would suffice.
 
@@ -31,7 +31,7 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 
 5. As a developer, I want to test StoryDetail with pre-resolved Blocker and Dependency data, so that I don't need to construct matching allStories arrays in every test.
 6. As a developer, I want cross-reference resolution to happen where the data lives (Board), not in the render layer (StoryDetail), so that the resolution logic can be tested independently.
-7. As a developer, I want StoryDetail's props to shrink from 7 to 5, with raw reference arrays replaced by resolved objects, so that the interface is smaller than the implementation.
+7. As a developer, I want StoryDetail's props to shrink from 7 to 6, with raw reference arrays replaced by resolved objects, so that the interface is smaller than the implementation.
 
 ### C: Unified adapter interface (Worth exploring)
 
@@ -62,14 +62,13 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - `App.tsx` drops `handleTransition`, `handleReactivate`, `transitionError`, and the toast markup (~68 lines).
 - The detail overlay closes on successful transition (a UX win that comes for free once the hook owns the flow).
 
-### Candidate B: Pre-resolved detail props
+### Candidate B: Pre-resolved detail props ✅ Implemented (BLF-030)
 
-- Define `ResolvedBlocker` type: `Blocker` fields plus `blockingStoryKey?: string` (resolved from `allStories`).
-- Define `ResolvedDependency` type: `Dependency` fields plus `dependsOnStory?: { key, title, status }`.
-- `Board.tsx` resolves these when `selectedStory` is set, before passing to `StoryDetail`. The linear `.find()` calls move from StoryDetail's render to Board's click handler.
-- `StoryDetail` drops the `allStories`, `blockers`, and `dependencies` props. It receives `resolvedBlockers: ResolvedBlocker[]` and `resolvedDeps: ResolvedDependency[]` instead.
-- `StoryDetail` drops `isAuthenticated` — it's only used to gate transition buttons, which moves to the `useTransition` hook.
-- `StoryDetail` drops `onTransition` — also moves to the hook.
+- Define `ResolvedBlocker` type: `{ id, description, resolved_at, blockingStoryKey }` where `blockingStoryKey` is the blocking story's key resolved from `stories`.
+- Define `ResolvedDependency` type: `{ depends_on_id, storyKey, storyTitle, isDone }` where `isDone` is a boolean derived from the target story's status.
+- `Board.tsx` resolves these via `useMemo` when `selectedStory` is set, before passing to `StoryDetail`. The linear `.find()` calls move from StoryDetail's render to Board's memoized resolution.
+- `StoryDetail` drops the `allStories`, `blockers`, and `dependencies` props. It receives `resolvedBlockers: ResolvedBlocker[]` and `resolvedDependencies: ResolvedDependency[]` instead.
+- `StoryDetail` retains `isAuthenticated` and `onTransition` for now (full extraction to `useTransition` hook is tracked by a follow-up).
 
 ### Candidate C: Unified adapter interface ✅ Implemented (BLF-027)
 
@@ -103,7 +102,7 @@ The candidates are designed to compose without conflicts, but the recommended or
 1. ~~**Candidate C first** (unified adapter)~~ ✅ Done (BLF-027)
 2. ~~**Candidate A** (useTransition hook)~~ ✅ Done (BLF-028)
 3. ~~**Candidate D** (useProjectSelection hook)~~ ✅ Done (BLF-029)
-4. **Candidate B** (pre-resolved detail props) — shrinks StoryDetail's interface. Depends on A (the hook removes `onTransition` and `isAuthenticated` from the interface anyway).
+4. ~~**Candidate B** (pre-resolved detail props)~~ ✅ Done (BLF-030) — shrinks StoryDetail's interface from 7 to 6 props.
 5. **Candidate E** (priority consolidation) — independent cleanup, can land any time.
 
 ## Testing Decisions

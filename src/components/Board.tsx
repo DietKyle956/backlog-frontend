@@ -3,6 +3,8 @@ import type {
   Story,
   Blocker,
   Dependency,
+  ResolvedBlocker,
+  ResolvedDependency,
 } from "../types";
 import { COLUMN_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "../types";
 import type { BacklogAdapter } from "../lib/adapter";
@@ -75,6 +77,36 @@ export function Board({
     }
     touchStartRef.current = null;
   };
+
+  const resolvedBlockers = useMemo<ResolvedBlocker[]>(() => {
+    if (!selectedStory) return [];
+    return blockers
+      .filter((b) => b.story_id === selectedStory.id)
+      .map((b) => ({
+        id: b.id,
+        description: b.description,
+        resolved_at: b.resolved_at,
+        blockingStoryKey:
+          b.blocking_story_id
+            ? stories.find((s) => s.id === b.blocking_story_id)?.key ?? null
+            : null,
+      }));
+  }, [selectedStory, blockers, stories]);
+
+  const resolvedDependencies = useMemo<ResolvedDependency[]>(() => {
+    if (!selectedStory) return [];
+    return dependencies
+      .filter((d) => d.story_id === selectedStory.id)
+      .map((d) => {
+        const depStory = stories.find((s) => s.id === d.depends_on_id);
+        return {
+          depends_on_id: d.depends_on_id,
+          storyKey: depStory?.key ?? null,
+          storyTitle: depStory?.title ?? null,
+          isDone: depStory?.status === "done",
+        };
+      });
+  }, [selectedStory, dependencies, stories]);
 
   if (!currentColumn) return null;
 
@@ -249,9 +281,8 @@ export function Board({
       {selectedStory && (
         <StoryDetail
           story={selectedStory}
-          allStories={stories}
-          blockers={blockers}
-          dependencies={dependencies}
+          resolvedBlockers={resolvedBlockers}
+          resolvedDependencies={resolvedDependencies}
           isAuthenticated={isAuthenticated}
           onClose={() => setSelectedStory(null)}
           adapter={adapter}

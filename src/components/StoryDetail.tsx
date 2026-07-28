@@ -1,4 +1,4 @@
-import type { Story, Blocker, Dependency } from "../types";
+import type { Story, ResolvedBlocker, ResolvedDependency } from "../types";
 import { COLUMN_LABELS, resolvePriority } from "../types";
 import { getAllowedTargets } from "../lib/transitions";
 import type { BacklogAdapter } from "../lib/adapter";
@@ -6,9 +6,8 @@ import { useTransition } from "../hooks/useTransition";
 
 interface StoryDetailProps {
   story: Story;
-  allStories: Story[];
-  blockers: Blocker[];
-  dependencies: Dependency[];
+  resolvedBlockers: ResolvedBlocker[];
+  resolvedDependencies: ResolvedDependency[];
   isAuthenticated: boolean;
   onClose: () => void;
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
@@ -16,27 +15,17 @@ interface StoryDetailProps {
 
 export function StoryDetail({
   story,
-  allStories,
-  blockers,
-  dependencies,
+  resolvedBlockers,
+  resolvedDependencies,
   isAuthenticated,
   onClose,
   adapter,
 }: StoryDetailProps) {
   const { performTransition, error, clearError } = useTransition(adapter);
-  const storyBlockers = blockers.filter(
-    (b) => b.story_id === story.id,
-  );
-  const storyDeps = dependencies.filter(
-    (d) => d.story_id === story.id,
-  );
-  const unresolvedBlockers = storyBlockers.filter((b) => !b.resolved_at);
-  const resolvedBlockers = storyBlockers.filter((b) => b.resolved_at);
+  const unresolvedBlockers = resolvedBlockers.filter((b) => !b.resolved_at);
+  const blockingResolved = resolvedBlockers.filter((b) => b.resolved_at);
   const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
     resolvePriority(story.priority);
-
-  const getDepStory = (id: number): Story | undefined =>
-    allStories.find((s) => s.id === id);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("en-US", {
@@ -82,7 +71,7 @@ export function StoryDetail({
         </h2>
 
         {/* Blockers warning */}
-        {storyBlockers.length > 0 ? (
+        {resolvedBlockers.length > 0 ? (
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Blockers
@@ -91,9 +80,6 @@ export function StoryDetail({
             {unresolvedBlockers.length > 0 && (
               <div className="space-y-2">
                 {unresolvedBlockers.map((b) => {
-                  const blockerStory = b.blocking_story_id
-                    ? getDepStory(b.blocking_story_id)
-                    : undefined;
                   return (
                   <div
                     key={b.id}
@@ -108,11 +94,11 @@ export function StoryDetail({
                     <p className="text-sm text-text-secondary">
                       {b.description || "No description provided"}
                     </p>
-                    {b.blocking_story_id && (
+                    {b.blockingStoryKey && (
                       <p className="text-xs mt-1">
                         Blocking:{" "}
                         <span className="bg-accent-danger text-white px-1.5 py-0.5 rounded text-xs font-mono">
-                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                          {b.blockingStoryKey}
                         </span>
                       </p>
                     )}
@@ -122,12 +108,9 @@ export function StoryDetail({
               </div>
             )}
             {/* Resolved blockers */}
-            {resolvedBlockers.length > 0 && (
+            {blockingResolved.length > 0 && (
               <div className="space-y-1.5">
-                {resolvedBlockers.map((b) => {
-                  const blockerStory = b.blocking_story_id
-                    ? getDepStory(b.blocking_story_id)
-                    : undefined;
+                {blockingResolved.map((b) => {
                   return (
                   <div
                     key={b.id}
@@ -142,11 +125,11 @@ export function StoryDetail({
                     <p className="text-sm text-text-muted line-through">
                       {b.description || "No description provided"}
                     </p>
-                    {b.blocking_story_id && (
+                    {b.blockingStoryKey && (
                       <p className="text-xs mt-1">
                         Blocking:{" "}
                         <span className="bg-accent-success text-white px-1.5 py-0.5 rounded text-xs font-mono">
-                          {blockerStory?.key ?? `#${b.blocking_story_id}`}
+                          {b.blockingStoryKey}
                         </span>
                       </p>
                     )}
@@ -189,44 +172,39 @@ export function StoryDetail({
           )}
 
         {/* Dependencies */}
-        {storyDeps.length > 0 && (
+        {resolvedDependencies.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Dependencies
             </h3>
             <div className="space-y-1.5">
-              {storyDeps.map((dep) => {
-                const depStory = getDepStory(dep.depends_on_id);
-                const isDone =
-                  depStory?.status === "done";
-                return (
+              {resolvedDependencies.map((dep) => (
                   <div
                     key={dep.depends_on_id}
                     className="flex items-center gap-2 text-sm"
                   >
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        isDone
+                        dep.isDone
                           ? "bg-accent-success"
                           : "bg-text-muted"
                       }`}
                     />
                     <span className="text-text-secondary">
-                      {depStory?.key ?? `#${dep.depends_on_id}`}
-                      {depStory && ` - ${depStory.title}`}
+                      {dep.storyKey ?? `#${dep.depends_on_id}`}
+                      {dep.storyKey && ` - ${dep.storyTitle}`}
                     </span>
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-md ${
-                        isDone
+                        dep.isDone
                           ? "bg-accent-success/15 text-accent-success"
                           : "bg-text-muted/15 text-text-muted"
                       }`}
                     >
-                      {isDone ? "Done" : "Pending"}
+                      {dep.isDone ? "Done" : "Pending"}
                     </span>
                   </div>
-                );
-              })}
+                ))}
             </div>
           </div>
         )}

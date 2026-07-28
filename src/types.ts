@@ -105,6 +105,22 @@ export interface Dependency {
   depends_on_id: number;
 }
 
+/** Blocker with the blocking story key pre-resolved from allStories */
+export interface ResolvedBlocker {
+  id: number;
+  description: string | null;
+  resolved_at: string | null;
+  blockingStoryKey: string | null;
+}
+
+/** Dependency with the target story's key, title, and completion pre-resolved */
+export interface ResolvedDependency {
+  depends_on_id: number;
+  storyKey: string | null;
+  storyTitle: string | null;
+  isDone: boolean;
+}
+
 export interface AppData {
   projects: Project[];
   stories: Story[];
