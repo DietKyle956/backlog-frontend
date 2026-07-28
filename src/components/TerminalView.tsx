@@ -1,6 +1,6 @@
+import { useState, useEffect, useRef } from "react";
 import type { Project, Story, StoryStatus } from "../types";
 import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
-
 
 interface TerminalViewProps {
   stories: Story[];
@@ -21,6 +21,53 @@ export function TerminalView({
   onClose,
   onOptimisticTransition,
 }: TerminalViewProps) {
+  const [confirmingStoryId, setConfirmingStoryId] = useState<number | null>(
+    null,
+  );
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (confirmingStoryId === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setConfirmingStoryId(null);
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusableElements =
+          modalRef.current.querySelectorAll<HTMLElement>(
+            "button:not([disabled])",
+          );
+        const firstFocusable = focusableElements[0];
+        const lastFocusable = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusable) {
+            e.preventDefault();
+            lastFocusable?.focus();
+          }
+        } else {
+          if (document.activeElement === lastFocusable) {
+            e.preventDefault();
+            firstFocusable?.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    const firstButton =
+      modalRef.current?.querySelector<HTMLButtonElement>("button");
+    firstButton?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [confirmingStoryId]);
+
   const terminalStories = stories.filter((s) =>
     TERMINAL_STATUSES.includes(s.status as StoryStatus),
   );
@@ -65,13 +112,7 @@ export function TerminalView({
       {isAuthenticated && (
         <button
           type="button"
-          onClick={() =>
-            onOptimisticTransition(
-              story.id,
-              story.status as StoryStatus,
-              "backlog",
-            )
-          }
+          onClick={() => setConfirmingStoryId(story.id)}
           className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
                      bg-accent/15 text-accent border border-accent/30
                      hover:bg-accent/20 active:scale-[0.98]
@@ -152,6 +193,77 @@ export function TerminalView({
           </>
         )}
       </div>
+
+      {/* Confirmation modal */}
+      {confirmingStoryId !== null && (() => {
+        const story = stories.find((s) => s.id === confirmingStoryId);
+        if (!story) return null;
+        return (
+          <div
+            ref={modalRef}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setConfirmingStoryId(null)}
+            />
+            {/* Dialog */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reactivate-dialog-heading"
+              className="relative bg-surface rounded-xl border border-border-subtle shadow-2xl p-6 max-w-sm w-full animate-scale-in"
+            >
+              <h2
+                id="reactivate-dialog-heading"
+                className="text-lg font-bold text-text-primary mb-2"
+              >
+                Reactivate Story
+              </h2>
+              <p className="text-sm text-text-secondary mb-6">
+                Are you sure you want to reactivate{" "}
+                <span className="font-semibold text-text-primary">
+                  {story.key}
+                </span>{" "}
+                from{" "}
+                <span className="font-semibold">
+                  {COLUMN_LABELS[story.status as StoryStatus]}
+                </span>{" "}
+                back to Backlog?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingStoryId(null)}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg
+                             bg-surface-raised text-text-secondary border border-border-subtle
+                             hover:bg-surface-hover transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOptimisticTransition(
+                      story.id,
+                      story.status as StoryStatus,
+                      "backlog",
+                    );
+                    setConfirmingStoryId(null);
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg
+                             bg-accent text-white
+                             hover:opacity-90 active:scale-[0.98]
+                             transition-all duration-100"
+                >
+                  Reactivate
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

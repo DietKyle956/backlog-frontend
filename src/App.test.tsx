@@ -2084,6 +2084,163 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
     });
   });
 
+  describe("BLF-025: Reactivate terminal story with confirmation prompt", () => {
+    it("shows reactivate button on terminal story cards when authenticated", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Terminal"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      });
+
+      // Reactivate button should be visible on terminal story cards
+      const reactivateButtons = screen.getAllByText("Reactivate to Backlog");
+      expect(reactivateButtons.length).toBeGreaterThanOrEqual(2); // One per terminal story
+    });
+
+    it("does not show reactivate button when not authenticated", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Terminal"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      });
+
+      // Reactivate button should NOT be visible when unauthenticated
+      expect(screen.queryByText("Reactivate to Backlog")).not.toBeInTheDocument();
+    });
+
+    it("shows confirmation prompt when reactivate button is clicked", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Terminal"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      });
+
+      // Click the first reactivate button (on CIQ-004, the cancelled story)
+      const reactivateButtons = screen.getAllByText("Reactivate to Backlog");
+      await userEvent.click(reactivateButtons[0]);
+
+      // Confirmation prompt should appear
+      await waitFor(() => {
+        expect(screen.getByText("Reactivate Story")).toBeInTheDocument();
+        expect(screen.getByText(/Are you sure you want to reactivate/)).toBeInTheDocument();
+        expect(screen.getByText("Cancel")).toBeInTheDocument();
+        expect(screen.getByText("Reactivate")).toBeInTheDocument();
+      });
+    });
+
+    it("cancelling the confirmation prompt does not reactivate the story", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Terminal"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      });
+
+      // Click reactivate on CIQ-004
+      const reactivateButtons = screen.getAllByText("Reactivate to Backlog");
+      await userEvent.click(reactivateButtons[0]);
+
+      // Confirmation prompt appears
+      await waitFor(() => {
+        expect(screen.getByText("Reactivate Story")).toBeInTheDocument();
+      });
+
+      // Click Cancel
+      await userEvent.click(screen.getByText("Cancel"));
+
+      // Confirmation should be dismissed
+      await waitFor(() => {
+        expect(screen.queryByText("Reactivate Story")).not.toBeInTheDocument();
+      });
+
+      // CIQ-004 should still be visible in terminal view (not reactivated)
+      expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+
+      // The story should still be cancelled in the store
+      const story = mocks.store.data!.stories.find((s) => s.id === 4);
+      expect(story!.status).toBe("cancelled");
+    });
+
+    it("confirming the prompt reactivates the story and moves it to backlog", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Terminal"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-004")).toBeInTheDocument();
+      });
+
+      // Click reactivate on CIQ-004
+      const reactivateButtons = screen.getAllByText("Reactivate to Backlog");
+      await userEvent.click(reactivateButtons[0]);
+
+      // Confirmation prompt appears
+      await waitFor(() => {
+        expect(screen.getByText("Reactivate Story")).toBeInTheDocument();
+      });
+
+      // Click the Reactivate confirm button
+      await userEvent.click(screen.getByText("Reactivate"));
+
+      // Confirmation should be dismissed
+      await waitFor(() => {
+        expect(screen.queryByText("Reactivate Story")).not.toBeInTheDocument();
+      });
+
+      // Story status should be updated in the store to backlog
+      const story = mocks.store.data!.stories.find((s) => s.id === 4);
+      expect(story!.status).toBe("backlog");
+    });
+  });
+
   describe("BLF-023: Optimistic UI update on status transition", () => {
     it("card moves to target column immediately when transition is tapped", async () => {
       mocks.mockAuth.getSession.mockResolvedValue({
