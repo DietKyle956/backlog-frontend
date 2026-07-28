@@ -18,6 +18,7 @@ interface BoardProps {
   dependencies: Dependency[];
   isAuthenticated: boolean;
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
+  onRefresh: () => Promise<void>;
 }
 
 export function Board({
@@ -26,6 +27,7 @@ export function Board({
   dependencies,
   isAuthenticated,
   adapter,
+  onRefresh,
 }: BoardProps) {
   const [currentColumnIndex, setCurrentColumnIndex] = useState(0);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
@@ -37,6 +39,15 @@ export function Board({
     "right",
   );
   const [animationKey, setAnimationKey] = useState(0);
+
+  // Pull-to-refresh state
+  const [pullState, setPullState] = useState<
+    "idle" | "pulling" | "refreshing"
+  >("idle");
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pullStartRef = useRef<{ x: number; y: number } | null>(null);
+  const PULL_THRESHOLD = 60;
 
   const columns = useMemo(
     () => computeColumns(stories, { searchTerm, priorityFilter }),
@@ -64,18 +75,62 @@ export function Board({
     return dependencies.filter((d) => d.story_id === storyId).length;
   };
 
-  // Touch swipe handling
-  const touchStartRef = useRef<number | null>(null);
+  // Touch handling: horizontal swipe for columns + vertical pull-to-refresh
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = e.touches[0].clientX;
+    pullStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
   };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartRef.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartRef.current;
-    if (Math.abs(delta) > 60) {
-      navigateColumn(delta > 0 ? "left" : "right");
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!pullStartRef.current || pullState === "refreshing") return;
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 0) {
+      // Not at top of scroll, reset pull state
+      if (pullState !== "idle") {
+        setPullState("idle");
+        setPullDistance(0);
+      }
+      return;
     }
-    touchStartRef.current = null;
+
+    const deltaY = e.touches[0].clientY - pullStartRef.current.y;
+    if (deltaY > 5) {
+      // Apply damping so the pull feels heavier the further you go
+      const damped = Math.min(deltaY * 0.5, 120);
+      setPullDistance(damped);
+      setPullState("pulling");
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!pullStartRef.current) return;
+    const deltaX = e.changedTouches[0].clientX - pullStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - pullStartRef.current.y;
+
+    // Only horizontal swipe if horizontal movement dominates
+    if (
+      Math.abs(deltaX) > Math.abs(deltaY) &&
+      Math.abs(deltaX) > 60
+    ) {
+      navigateColumn(deltaX > 0 ? "left" : "right");
+      setPullState("idle");
+      setPullDistance(0);
+    } else if (pullState === "pulling") {
+      const dampedY = Math.min(deltaY * 0.5, 120);
+      if (dampedY >= PULL_THRESHOLD) {
+        setPullState("refreshing");
+        onRefresh().finally(() => {
+          setPullState("idle");
+          setPullDistance(0);
+        });
+      } else {
+        setPullState("idle");
+        setPullDistance(0);
+      }
+    }
+    pullStartRef.current = null;
   };
 
   const resolvedBlockers = useMemo<ResolvedBlocker[]>(() => {
@@ -215,8 +270,73 @@ export function Board({
         </div>
       </div>
 
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="flex justify-center overflow-hidden transition-[height] duration-200"
+        style={{
+          height:
+            pullState === "refreshing"
+              ? "40px"
+              : pullState === "pulling"
+                ? `${pullDistance}px`
+                : "0px",
+          opacity: pullState === "idle" ? 0 : 1,
+        }}
+        aria-live="polite"
+      >
+        {pullState === "refreshing" ? (
+          <div className="flex items-center gap-2 py-2">
+            <svg
+              className="animate-spin h-4 w-4 text-accent"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <span className="text-xs text-text-muted">Refreshing...</span>
+          </div>
+        ) : pullState === "pulling" ? (
+          <div className="flex items-center gap-1.5 py-1">
+            <svg
+              className={`h-3.5 w-3.5 text-text-muted transition-transform duration-200 ${
+                pullDistance >= PULL_THRESHOLD ? "rotate-180" : ""
+              }`}
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+            <span className="text-[10px] text-text-muted">
+              {pullDistance >= PULL_THRESHOLD
+                ? "Release to refresh"
+                : "Pull to refresh"}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
       {/* Column content */}
       <div
+        ref={scrollRef}
         key={animationKey}
         className={`flex-1 overflow-y-auto px-4 pb-4 space-y-3 ${
           animationDir === "right"
@@ -224,6 +344,7 @@ export function Board({
             : "animate-spring-in-left"
         }`}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {currentColumn.stories.length === 0 ? (

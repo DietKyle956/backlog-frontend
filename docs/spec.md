@@ -104,9 +104,12 @@ failed → backlog, cancelled
 - Within each Column, stories sorted by Priority ascending (highest first), then by creation date ascending (oldest first)
 
 ### Pull-to-refresh
-- Detect overscroll at the top of the card list
-- Trigger `refetch()` from `useBoardData`
-- Visual feedback: a subtle spinner or refresh indicator
+- Detect vertical pull-down at the top of the card list (scrollTop === 0)
+- Swipe and pull are mutually exclusive: if horizontal movement dominates, it's a Column swipe; if vertical dominates, it's a pull-to-refresh
+- Pull distance is damped (×0.5) for a natural feel; threshold at 60 px damped distance triggers the refresh on release
+- Arrow indicator during pull: points up below threshold ("Pull to refresh"), rotates 180° past threshold ("Release to refresh")
+- Spinner with "Refreshing..." text while the async refetch is in flight; indicator collapses when complete
+- Trigger `refetch()` from `useBoardData` on release past threshold
 
 ### Real time updates
 - Supabase Realtime channel for `stories` table (INSERT, UPDATE, DELETE)

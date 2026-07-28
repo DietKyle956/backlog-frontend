@@ -164,18 +164,6 @@ export function App() {
         </div>
       </header>
 
-      {/* Pull-to-refresh indicator */}
-      <div className="flex justify-center py-1">
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="text-[10px] text-text-muted/50 hover:text-text-muted transition-colors"
-          aria-label="Refresh board"
-        >
-          pull to refresh
-        </button>
-      </div>
-
       {/* Board or Terminal view */}
       {showTerminal && data ? (
         <TerminalView
@@ -195,6 +183,7 @@ export function App() {
             dependencies={data.dependencies}
             isAuthenticated={isAuthenticated}
             adapter={adapter}
+            onRefresh={refetch}
           />
         )
       )}

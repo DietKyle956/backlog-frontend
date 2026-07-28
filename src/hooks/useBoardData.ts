@@ -38,5 +38,9 @@ export function useBoardData(adapter: BacklogAdapter): BoardDataState {
     return unsubscribe;
   }, [adapter, fetchAll]);
 
-  return { data, loading, error, refetch: fetchAll };
+  const refetch = useCallback(async () => {
+    await fetchAll();
+  }, [fetchAll]);
+
+  return { data, loading, error, refetch };
 }

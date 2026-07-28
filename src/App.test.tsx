@@ -1440,3 +1440,324 @@ describe("BLF-015: Real-time board updates", () => {
     });
   });
 });
+
+describe("BLF-016: Pull-to-refresh on board card list", () => {
+  const getSwipeableArea = (): Element => {
+    const el = document.querySelector(".overflow-y-auto");
+    if (!el) throw new Error("Could not find swipeable content area");
+    return el;
+  };
+
+  const pullDown = (element: Element, startY: number, endY: number) => {
+    fireEvent.touchStart(element, {
+      touches: [{ clientX: 100, clientY: startY }],
+    });
+    fireEvent.touchMove(element, {
+      touches: [{ clientX: 100, clientY: endY }],
+    });
+  };
+
+  const releasePull = (element: Element, endX: number, endY: number) => {
+    fireEvent.touchEnd(element, {
+      changedTouches: [{ clientX: endX, clientY: endY }],
+    });
+  };
+
+  beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    localStorage.clear();
+    resetStore();
+    mocks.mockAuth.getSession.mockResolvedValue({ data: { session: null } });
+    mocks.mockAuth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+  });
+
+  it("shows 'Pull to refresh' indicator when pulling down at scroll top", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Pull down a moderate distance (below threshold)
+    pullDown(area, 0, 80);
+
+    await waitFor(() => {
+      expect(screen.getByText("Pull to refresh")).toBeInTheDocument();
+    });
+
+    // Arrow should be pointing up (not rotated)
+    const indicatorArea = document.querySelector("[aria-live='polite']");
+    expect(indicatorArea).toBeInTheDocument();
+    const arrowSvg = indicatorArea!.querySelector("svg");
+    expect(arrowSvg).toBeInTheDocument();
+    expect(arrowSvg!.classList.contains("rotate-180")).toBe(false);
+  });
+
+  it("shows 'Release to refresh' when pulled past threshold", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Pull past the threshold (damped 60 requires raw ~120 with 0.5 damping)
+    pullDown(area, 0, 150);
+
+    await waitFor(() => {
+      expect(screen.getByText("Release to refresh")).toBeInTheDocument();
+    });
+
+    // Arrow should be rotated 180deg
+    const indicatorArea = document.querySelector("[aria-live='polite']");
+    const arrowSvg = indicatorArea!.querySelector("svg");
+    expect(arrowSvg!.classList.contains("rotate-180")).toBe(true);
+  });
+
+  it("triggers refetch and shows spinner when released past threshold", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Simulate complete pull-to-refresh gesture
+    pullDown(area, 0, 150);
+    await waitFor(() => {
+      expect(screen.getByText("Release to refresh")).toBeInTheDocument();
+    });
+
+    releasePull(area, 100, 150);
+
+    // Should show refreshing spinner - verify both text and SVG in one waitFor
+    await waitFor(() => {
+      expect(screen.getByText("Refreshing...")).toBeInTheDocument();
+      // Verify the spinner SVG is present (has animate-spin in class)
+      const indicatorArea = document.querySelector("[aria-live='polite']");
+      expect(indicatorArea).toBeTruthy();
+      const svg = indicatorArea!.querySelector("svg");
+      expect(svg).toBeTruthy();
+      expect(svg!.className.baseVal || svg!.getAttribute("class")).toContain(
+        "animate-spin",
+      );
+    });
+
+    // After refresh completes, indicator should be gone
+    await waitFor(() => {
+      expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+    });
+  });
+
+  it("board updates with fresh data after pull-to-refresh", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Modify the data store to simulate server-side data change
+    mocks.store.data = {
+      ...mocks.store.data!,
+      stories: [
+        ...mocks.store.data!.stories,
+        {
+          id: 99,
+          project_id: 3,
+          key: "CIQ-099",
+          title: "Fresh data after refresh",
+          description: "",
+          status: "backlog",
+          acceptance_criteria: [],
+          priority: 3,
+          created_at: "2026-07-20T00:00:00Z",
+          updated_at: "2026-07-20T00:00:00Z",
+          reviewed_by: null,
+        },
+      ],
+    };
+
+    // Pull and release past threshold
+    pullDown(area, 0, 150);
+    releasePull(area, 100, 150);
+
+    // Fresh data should appear after refresh completes
+    await waitFor(() => {
+      expect(screen.getByText("Fresh data after refresh")).toBeInTheDocument();
+    });
+
+    // Original data should still be there
+    expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+
+    // Story count should reflect the new story
+    expect(screen.getByText("3 stories")).toBeInTheDocument();
+  });
+
+  it("works independently of Realtime subscription", async () => {
+    // Clear the Realtime callback to simulate disconnected Realtime
+    mocks.dataChangeCallback = null;
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    // Modify data store while Realtime is "disconnected"
+    mocks.store.data = {
+      ...mocks.store.data!,
+      stories: [
+        ...mocks.store.data!.stories,
+        {
+          id: 77,
+          project_id: 3,
+          key: "CIQ-077",
+          title: "Realtime disconnected refresh",
+          description: "",
+          status: "backlog",
+          acceptance_criteria: [],
+          priority: 4,
+          created_at: "2026-07-20T00:00:00Z",
+          updated_at: "2026-07-20T00:00:00Z",
+          reviewed_by: null,
+        },
+      ],
+    };
+
+    const area = getSwipeableArea();
+    pullDown(area, 0, 150);
+    releasePull(area, 100, 150);
+
+    // Even with Realtime disconnected, pull-to-refresh should work
+    await waitFor(() => {
+      expect(
+        screen.getByText("Realtime disconnected refresh"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("horizontal swipe still navigates columns without triggering pull", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Swipe left (dominant horizontal movement)
+    fireEvent.touchStart(area, {
+      touches: [{ clientX: 300, clientY: 0 }],
+    });
+    fireEvent.touchEnd(area, {
+      changedTouches: [{ clientX: 200, clientY: 5 }],
+    });
+
+    // Should navigate to next column, not show pull indicator
+    await waitFor(() => {
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+    });
+
+    // Pull indicator should NOT be shown
+    expect(screen.queryByText("Pull to refresh")).not.toBeInTheDocument();
+    expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+  });
+
+  it("vertical pull at scroll top does not trigger horizontal swipe", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Pull down (dominant vertical movement)
+    pullDown(area, 0, 150);
+    releasePull(area, 100, 150);
+
+    // Should trigger refresh (shows spinner), not navigate
+    await waitFor(() => {
+      expect(screen.getByText("Refreshing...")).toBeInTheDocument();
+    });
+
+    // Should still be on Backlog column
+    expect(screen.getByText("Backlog")).toBeInTheDocument();
+
+    // Refresh spinner should eventually disappear
+    await waitFor(() => {
+      expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+    });
+  });
+
+  it("pull below threshold without releasing does not trigger refresh", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Pull slightly but release below threshold
+    pullDown(area, 0, 80);
+    releasePull(area, 100, 80);
+
+    // Should not show refreshing spinner
+    expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+
+    // Pull indicator should be gone
+    await waitFor(() => {
+      expect(screen.queryByText("Pull to refresh")).not.toBeInTheDocument();
+    });
+  });
+
+  it("swipe during active pull resets pull state without triggering refresh", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    const area = getSwipeableArea();
+
+    // Start a pull that passes threshold
+    pullDown(area, 0, 130);
+    await waitFor(() => {
+      expect(screen.getByText("Release to refresh")).toBeInTheDocument();
+    });
+
+    // Release with dominant horizontal swipe (deltaX=100 > deltaY=60, |deltaX| > 60)
+    // pullStartRef was set to {x:100, y:0} by the pull
+    // Horizontal swipe takes precedence: navigates left and resets pull
+    fireEvent.touchEnd(area, {
+      changedTouches: [{ clientX: 200, clientY: 60 }],
+    });
+
+    // Pull indicator should be gone (horizontal swipe resets pull state)
+    await waitFor(() => {
+      expect(screen.queryByText("Release to refresh")).not.toBeInTheDocument();
+      expect(screen.queryByText("Pull to refresh")).not.toBeInTheDocument();
+      expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+    });
+  });
+});
