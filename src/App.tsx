@@ -16,7 +16,7 @@ export function App() {
 
   const { data, loading, error, refetch, applyOptimisticUpdate } =
     useBoardData(adapter);
-  const { performTransition } = useTransition(adapter);
+  const { performTransition, error: transitionError, clearError: clearTransitionError } = useTransition(adapter);
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -211,6 +211,20 @@ export function App() {
           )}
         </div>
       </header>
+
+      {/* Transition error banner */}
+      {transitionError && (
+        <div className="mx-4 mt-3 px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger flex items-center justify-between">
+          <span>{transitionError}</span>
+          <button
+            type="button"
+            onClick={clearTransitionError}
+            className="ml-2 underline text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Board or Terminal view */}
       {showTerminal && data ? (
