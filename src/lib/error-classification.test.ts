@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyTransitionError, type ClassifiedError } from "./error-classification";
+import { classifyTransitionError } from "./error-classification";
 
 describe("classifyTransitionError", () => {
   it("classifies Supabase RLS errors as auth type", () => {
