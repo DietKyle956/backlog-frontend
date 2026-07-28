@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLF-016: Pull-to-refresh visual demo</title>
+  <style>
+    :root {
+      --color-canvas: #0B0E14;
+      --color-surface: #151A22;
+      --color-surface-raised: #1C2330;
+      --color-accent: #60A5FA;
+      --color-text-primary: #E2E8F0;
+      --color-text-secondary: #94A3B8;
+      --color-text-muted: #64748B;
+      --color-border-subtle: #1E293B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-canvas);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+    }
+    .demo-container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 40px 0;
+      min-height: 100vh;
+      background: var(--color-canvas);
+    }
+    .demo-header {
+      padding: 0 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .demo-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .state-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      background: var(--color-surface-raised);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .demo-section {
+      margin: 24px 16px;
+      background: var(--color-surface);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--color-border-subtle);
+    }
+    .section-header {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-body {
+      padding: 16px;
+    }
+    .board-mock {
+      background: var(--color-canvas);
+      border-radius: 8px;
+      min-height: 200px;
+    }
+    .board-header {
+      padding: 12px 16px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .board-col-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+    .board-col-count {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    .card-mock {
+      margin: 8px 16px;
+      padding: 16px;
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid var(--color-border-subtle);
+    }
+    .card-key {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 14px;
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+    .dot-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 12px 0;
+    }
+    .dot {
+      width: 24px;
+      height: 4px;
+      border-radius: 9999px;
+      background: rgba(100,116,139,0.3);
+    }
+    .dot.active {
+      width: 24px;
+      height: 6px;
+      background: var(--color-accent);
+    }
+    /* Pull-to-refresh indicator (exact from Board.tsx) */
+    .pull-indicator {
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+      transition: height 0.2s;
+    }
+    .pull-indicator.pulling { height: 65px; opacity: 1; }
+    .pull-indicator.pulling .pull-content { display: flex; }
+    .pull-indicator.refreshing { height: 40px; opacity: 1; }
+    .pull-indicator.refreshing .refresh-content { display: flex; }
+    .pull-content, .refresh-content { display: none; }
+    .pull-content {
+      align-items: center;
+      gap: 6px;
+      padding-top: 4px;
+    }
+    .refresh-content {
+      align-items: center;
+      gap: 8px;
+      padding-top: 8px;
+    }
+    .arrow-icon {
+      transition: transform 0.2s;
+    }
+    .arrow-icon.rotated { transform: rotate(180deg); }
+    .pull-text {
+      font-size: 10px;
+      color: var(--color-text-muted);
+    }
+    .refresh-text {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spinner { animation: spin 1s linear infinite; }
+    .state-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      font-size: 12px;
+    }
+    .state-table th, .state-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .state-table th {
+      color: var(--color-text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .state-table td {
+      color: var(--color-text-secondary);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(52,211,153,0.15); color: #34D399; }
+    .badge-blue { background: rgba(96,165,250,0.15); color: #60A5FA; }
+    .badge-amber { background: rgba(251,191,36,0.15); color: #FBBF24; }
+  </style>
+</head>
+<body>
+<div class="demo-container">
+
+  <div class="demo-header">
+    <span class="demo-title">Backlog</span>
+    <span class="state-label">Pull-to-Refresh Demo</span>
+  </div>
+
+  <!-- State 1: PULLING (below threshold) -->
+  <div class="demo-section">
+    <div class="section-header">
+      <span>State 1: Pulling</span>
+      <span class="badge badge-blue">arrow visible</span>
+    </div>
+    <div class="section-body">
+      <div class="board-mock">
+        <div class="pull-indicator pulling">
+          <div class="pull-content">
+            <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+            <span class="pull-text">Pull to refresh</span>
+          </div>
+        </div>
+        <div class="board-header">
+          <span class="board-col-title">Backlog</span>
+          <span class="board-col-count">3 stories</span>
+        </div>
+        <div class="card-mock">
+          <div class="card-key">CIQ-001</div>
+          <div class="card-title">Set up project scaffolding</div>
+        </div>
+        <div class="card-mock">
+          <div class="card-key">CIQ-002</div>
+          <div class="card-title">Add authentication</div>
+        </div>
+        <div class="card-mock">
+          <div class="card-key">CIQ-003</div>
+          <div class="card-title">Build Kanban board</div>
+        </div>
+      </div>
+      <div class="dot-row">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 2: PULLING (past threshold) -->
+  <div class="demo-section">
+    <div class="section-header">
+      <span>State 2: Past Threshold</span>
+      <span class="badge badge-amber">arrow flipped</span>
+    </div>
+    <div class="section-body">
+      <div class="board-mock">
+        <div class="pull-indicator pulling">
+          <div class="pull-content">
+            <svg class="arrow-icon rotated" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+            <span class="pull-text">Release to refresh</span>
+          </div>
+        </div>
+        <div class="board-header">
+          <span class="board-col-title">Backlog</span>
+          <span class="board-col-count">3 stories</span>
+        </div>
+        <div class="card-mock">
+          <div class="card-key">CIQ-001</div>
+          <div class="card-title">Set up project scaffolding</div>
+        </div>
+      </div>
+      <div class="dot-row">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 3: REFRESHING -->
+  <div class="demo-section">
+    <div class="section-header">
+      <span>State 3: Refreshing</span>
+      <span class="badge badge-green">spinner active</span>
+    </div>
+    <div class="section-body">
+      <div class="board-mock">
+        <div class="pull-indicator refreshing">
+          <div class="refresh-content">
+            <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" style="color: #60A5FA;">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25" />
+              <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.75" />
+            </svg>
+            <span class="refresh-text">Refreshing...</span>
+          </div>
+        </div>
+        <div class="board-header">
+          <span class="board-col-title">Backlog</span>
+          <span class="board-col-count">3 stories</span>
+        </div>
+        <div class="card-mock">
+          <div class="card-key">CIQ-001</div>
+          <div class="card-title">Set up project scaffolding</div>
+        </div>
+      </div>
+      <div class="dot-row">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State transition summary -->
+  <div style="padding: 0 16px; margin-top: 8px;">
+    <table class="state-table">
+      <thead>
+        <tr>
+          <th>Gesture</th>
+          <th>Pull State</th>
+          <th>Indicator</th>
+          <th>Text</th>
+          <th>Refetch Triggered?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Pull down &lt; 60px (damped)</td>
+          <td><span class="badge badge-blue">pulling</span></td>
+          <td>Arrow (up)</td>
+          <td>"Pull to refresh"</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>Pull down &ge; 60px (damped)</td>
+          <td><span class="badge badge-amber">pulling</span></td>
+          <td>Arrow (flipped)</td>
+          <td>"Release to refresh"</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>Release past threshold</td>
+          <td><span class="badge badge-green">refreshing</span></td>
+          <td>Spinner</td>
+          <td>"Refreshing..."</td>
+          <td><strong>Yes</strong></td>
+        </tr>
+        <tr>
+          <td>Refresh completes</td>
+          <td>idle</td>
+          <td>None</td>
+          <td>-</td>
+          <td>Board updated</td>
+        </tr>
+        <tr>
+          <td>Horizontal swipe</td>
+          <td>idle (reset)</td>
+          <td>None</td>
+          <td>-</td>
+          <td>No (navigated)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Real-time independence note -->
+  <div class="demo-section">
+    <div class="section-header">
+      <span>Realtime Independence</span>
+      <span class="badge badge-green">verified</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.6;">
+        Pull-to-refresh triggers a direct <code style="background:var(--color-surface-raised);padding:1px 6px;border-radius:3px;font-size:12px;">refetch()</code> call
+        on the data adapter, bypassing the Realtime subscription entirely.
+        Even when the Supabase Realtime channel is disconnected or unavailable,
+        users can still manually pull down to refresh the board with fresh data.
+      </p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
