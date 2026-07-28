@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import { useBoardData } from "./hooks/useBoardData";
 import { useProjectSelection } from "./hooks/useProjectSelection";
 import { Board } from "./components/Board";
+import { SkeletonCard } from "./components/SkeletonCard";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import { createSupabaseAdapter } from "./adapters/supabase-adapter";
@@ -67,11 +68,8 @@ export function App() {
           </div>
         </header>
         <div className="flex-1 px-4 space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-32 bg-surface rounded-xl animate-pulse"
-            />
+          {[...Array(5)].map((_, i) => (
+            <SkeletonCard key={i} />
           ))}
         </div>
       </div>
