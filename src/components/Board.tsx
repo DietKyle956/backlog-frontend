@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import type {
   Story,
+  StoryStatus,
   Blocker,
   Dependency,
   ResolvedBlocker,
@@ -9,6 +10,7 @@ import type {
 import { COLUMN_LABELS, PRIORITY_LABELS } from "../types";
 import type { BacklogAdapter } from "../lib/adapter";
 import { computeColumns } from "../lib/columns";
+import { useTransition } from "../hooks/useTransition";
 import { StoryCard } from "./StoryCard";
 import { StoryDetail } from "./StoryDetail";
 
@@ -20,6 +22,10 @@ interface BoardProps {
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
   onRefresh: () => Promise<void>;
   onSignIn: () => void;
+  applyOptimisticUpdate: (
+    storyId: number,
+    newStatus: StoryStatus,
+  ) => () => void;
 }
 
 export function Board({
@@ -30,6 +36,7 @@ export function Board({
   adapter,
   onRefresh,
   onSignIn,
+  applyOptimisticUpdate,
 }: BoardProps) {
   const [currentColumnIndex, setCurrentColumnIndex] = useState(0);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
@@ -50,6 +57,8 @@ export function Board({
   const scrollRef = useRef<HTMLDivElement>(null);
   const pullStartRef = useRef<{ x: number; y: number } | null>(null);
   const PULL_THRESHOLD = 60;
+
+  const { performTransition, error: transitionError, clearError: clearTransitionError } = useTransition(adapter);
 
   const columns = useMemo(
     () => computeColumns(stories, { searchTerm, priorityFilter }),
@@ -76,6 +85,32 @@ export function Board({
   const getDependencyCount = (storyId: number): number => {
     return dependencies.filter((d) => d.story_id === storyId).length;
   };
+
+  // Optimistic transition: apply immediately, close overlay, then fire server request
+  const handleOptimisticTransition = useCallback(
+    async (
+      storyId: number,
+      currentStatus: StoryStatus,
+      newStatus: StoryStatus,
+    ) => {
+      // 1. Apply optimistic update (card moves immediately)
+      const revert = applyOptimisticUpdate(storyId, newStatus);
+
+      // 2. Close detail overlay immediately
+      setSelectedStory(null);
+
+      // 3. Fire server request in background
+      const result = await performTransition(storyId, currentStatus, newStatus);
+
+      // 4. If failed, revert optimistic update so card moves back
+      if (!result.success) {
+        revert();
+      }
+      // On success: optimistic override will be cleared when the next
+      // fetchAll (from realtime or pull-to-refresh) confirms the server state.
+    },
+    [applyOptimisticUpdate, performTransition],
+  );
 
   // Touch handling: horizontal swipe for columns + vertical pull-to-refresh
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -169,6 +204,20 @@ export function Board({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* Transition error banner */}
+      {transitionError && (
+        <div className="mx-4 mt-3 px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger flex items-center justify-between">
+          <span>{transitionError}</span>
+          <button
+            type="button"
+            onClick={clearTransitionError}
+            className="ml-2 underline text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Header: Column title + dash indicators */}
       <div className="px-4 pt-4 pb-2 space-y-3">
         <div className="flex items-center justify-between">
@@ -409,8 +458,7 @@ export function Board({
           isAuthenticated={isAuthenticated}
           onClose={() => setSelectedStory(null)}
           onSignIn={onSignIn}
-          adapter={adapter}
-          onRefresh={onRefresh}
+          onOptimisticTransition={handleOptimisticTransition}
         />
       )}
     </div>

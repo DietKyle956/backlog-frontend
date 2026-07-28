@@ -1,24 +1,26 @@
 import type { Project, Story, StoryStatus } from "../types";
 import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
-import type { BacklogAdapter } from "../lib/adapter";
-import { useTransition } from "../hooks/useTransition";
+import { getAllowedTargets } from "../lib/transitions";
 
 interface TerminalViewProps {
   stories: Story[];
   projects: Project[];
-  adapter: Pick<BacklogAdapter, "updateStoryStatus">;
   isAuthenticated: boolean;
   onClose: () => void;
+  onOptimisticTransition: (
+    storyId: number,
+    currentStatus: StoryStatus,
+    newStatus: StoryStatus,
+  ) => Promise<void>;
 }
 
 export function TerminalView({
   stories,
   projects,
-  adapter,
   isAuthenticated,
   onClose,
+  onOptimisticTransition,
 }: TerminalViewProps) {
-  const { performTransition, error, clearError } = useTransition(adapter);
   const terminalStories = stories.filter((s) =>
     TERMINAL_STATUSES.includes(s.status as StoryStatus),
   );
@@ -61,39 +63,22 @@ export function TerminalView({
         {story.title}
       </h3>
       {isAuthenticated && (
-        <>
-          {error && (
-            <div className="px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger">
-              {error}
-              <button
-                type="button"
-                onClick={clearError}
-                className="ml-2 underline"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={async () => {
-              const result = await performTransition(
-                story.id,
-                story.status as StoryStatus,
-                "backlog",
-              );
-              if (result.success) {
-                onClose();
-              }
-            }}
-            className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-accent/15 text-accent border border-accent/30
-                       hover:bg-accent/20 active:scale-[0.98]
-                       transition-all duration-100"
-          >
-            Reactivate to Backlog
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={() =>
+            onOptimisticTransition(
+              story.id,
+              story.status as StoryStatus,
+              "backlog",
+            )
+          }
+          className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
+                     bg-accent/15 text-accent border border-accent/30
+                     hover:bg-accent/20 active:scale-[0.98]
+                     transition-all duration-100"
+        >
+          Reactivate to Backlog
+        </button>
       )}
     </div>
   );

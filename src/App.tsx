@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import type { StoryStatus } from "./types";
 import { supabase } from "./supabase";
 import { useBoardData } from "./hooks/useBoardData";
+import { useTransition } from "./hooks/useTransition";
 import { useProjectSelection } from "./hooks/useProjectSelection";
 import { Board } from "./components/Board";
 import { SkeletonCard } from "./components/SkeletonCard";
@@ -12,7 +14,9 @@ export function App() {
   // Data-access adapter (stable reference)
   const adapter = useMemo(() => createSupabaseAdapter(), []);
 
-  const { data, loading, error, refetch } = useBoardData(adapter);
+  const { data, loading, error, refetch, applyOptimisticUpdate } =
+    useBoardData(adapter);
+  const { performTransition } = useTransition(adapter);
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -49,6 +53,21 @@ export function App() {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
   }, []);
+
+  const handleTerminalOptimisticTransition = useCallback(
+    async (
+      storyId: number,
+      currentStatus: StoryStatus,
+      newStatus: StoryStatus,
+    ) => {
+      const revert = applyOptimisticUpdate(storyId, newStatus);
+      const result = await performTransition(storyId, currentStatus, newStatus);
+      if (!result.success) {
+        revert();
+      }
+    },
+    [applyOptimisticUpdate, performTransition],
+  );
 
   // Loading state
   if (loading) {
@@ -198,9 +217,9 @@ export function App() {
         <TerminalView
           stories={data.stories}
           projects={data.projects}
-          adapter={adapter}
           isAuthenticated={isAuthenticated}
           onClose={() => setShowTerminal(false)}
+          onOptimisticTransition={handleTerminalOptimisticTransition}
         />
       ) : (
         data &&
@@ -214,6 +233,7 @@ export function App() {
             adapter={adapter}
             onRefresh={refetch}
             onSignIn={handleSignIn}
+            applyOptimisticUpdate={applyOptimisticUpdate}
           />
         )
       )}
