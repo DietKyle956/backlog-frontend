@@ -115,16 +115,20 @@ export function Board({
       Math.abs(deltaX) > 60
     ) {
       navigateColumn(deltaX > 0 ? "left" : "right");
-    } else if (pullDistance >= PULL_THRESHOLD && pullState === "pulling") {
-      // Pull-to-refresh trigger
-      setPullState("refreshing");
-      onRefresh().finally(() => {
-        setPullState("idle");
-        setPullDistance(0);
-      });
-    } else {
       setPullState("idle");
       setPullDistance(0);
+    } else if (pullState === "pulling") {
+      const dampedY = Math.min(deltaY * 0.5, 120);
+      if (dampedY >= PULL_THRESHOLD) {
+        setPullState("refreshing");
+        onRefresh().finally(() => {
+          setPullState("idle");
+          setPullDistance(0);
+        });
+      } else {
+        setPullState("idle");
+        setPullDistance(0);
+      }
     }
     pullStartRef.current = null;
   };
