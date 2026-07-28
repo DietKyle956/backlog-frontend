@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import {
@@ -1807,6 +1807,156 @@ describe("BLF-016: Pull-to-refresh on board card list", () => {
       expect(screen.queryByText("Release to refresh")).not.toBeInTheDocument();
       expect(screen.queryByText("Pull to refresh")).not.toBeInTheDocument();
       expect(screen.queryByText("Refreshing...")).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
+  it("shows Sign In button on the board header when not authenticated", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    // Sign In button is visible in the header
+    expect(screen.getByText("Sign In")).toBeInTheDocument();
+    expect(screen.queryByText("Sign Out")).not.toBeInTheDocument();
+  });
+
+  it("clicking Sign In initiates GitHub OAuth flow via Supabase Auth", async () => {
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign In")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Sign In"));
+
+    expect(mocks.mockAuth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "github",
+      options: {
+        redirectTo: window.location.origin + "/backlog-frontend/",
+      },
+    });
+  });
+
+  it("shows Sign Out button and hides Sign In when authenticated", async () => {
+    mocks.mockAuth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "test-user" } } },
+    });
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Backlog")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Sign Out")).toBeInTheDocument();
+    expect(screen.queryByText("Sign In")).not.toBeInTheDocument();
+  });
+
+  it("clicking Sign Out calls signOut and clears auth state", async () => {
+    mocks.mockAuth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "test-user" } } },
+    });
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign Out")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("Sign Out"));
+
+    expect(mocks.mockAuth.signOut).toHaveBeenCalled();
+  });
+
+  it("shows transition buttons in StoryDetail when authenticated instead of 'Sign in to edit'", async () => {
+    mocks.mockAuth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "test-user" } } },
+    });
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Transition")).toBeInTheDocument();
+      expect(screen.queryByText("Sign in to edit")).not.toBeInTheDocument();
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+      expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    });
+  });
+
+  it("auth state change listener updates UI from unauthenticated to authenticated", async () => {
+    // Capture the onAuthStateChange callback for later invocation
+    let capturedCallback: ((event: string, session: unknown) => void) | null = null;
+    mocks.mockAuth.onAuthStateChange.mockImplementation(
+      (cb: (event: string, session: unknown) => void) => {
+        capturedCallback = cb;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      },
+    );
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign In")).toBeInTheDocument();
+    });
+
+    // Simulate Supabase firing the auth state change callback on sign in
+    expect(capturedCallback).not.toBeNull();
+    act(() => {
+      capturedCallback!("SIGNED_IN", { user: { id: "test-user" } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      expect(screen.queryByText("Sign In")).not.toBeInTheDocument();
+    });
+  });
+
+  it("auth state change listener updates UI from authenticated to unauthenticated", async () => {
+    // Start authenticated
+    mocks.mockAuth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "test-user" } } },
+    });
+
+    let capturedCallback: ((event: string, session: unknown) => void) | null = null;
+    mocks.mockAuth.onAuthStateChange.mockImplementation(
+      (cb: (event: string, session: unknown) => void) => {
+        capturedCallback = cb;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      },
+    );
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign Out")).toBeInTheDocument();
+    });
+
+    // Simulate Supabase firing the auth state change callback on sign out
+    expect(capturedCallback).not.toBeNull();
+    act(() => {
+      capturedCallback!("SIGNED_OUT", null);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign In")).toBeInTheDocument();
+      expect(screen.queryByText("Sign Out")).not.toBeInTheDocument();
     });
   });
 });
