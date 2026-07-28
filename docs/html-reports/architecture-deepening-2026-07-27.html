@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture review — backlog-frontend</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+  <style>
+    .seam { stroke-dasharray: 4 4; }
+    .leak { stroke: #dc2626; }
+    .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    .module-box { border: 2px solid #475569; border-radius: 0.5rem; padding: 0.75rem; font-size: 0.75rem; }
+    .module-box.shallow { border-color: #f87171; border-style: dashed; }
+    .module-box.deep { border-color: #34d399; border-width: 3px; }
+    .arrow-leak { color: #dc2626; }
+    .mass-bar { height: 8px; border-radius: 4px; }
+    pre.mermaid { background: transparent; overflow-x: auto; max-width: 100%; }
+    body { overflow-x: hidden; }
+    .mermaid { max-width: 100%; }
+    .mermaid svg { max-width: 100% !important; height: auto !important; }
+    article { overflow-x: auto; }
+    code, .font-mono { word-break: break-all; overflow-wrap: anywhere; }
+    .grid > * { min-width: 0; }
+  </style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans antialiased">
+
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12" style="max-width:100%;overflow-x:hidden">
+
+  <!-- ====== HEADER ====== -->
+  <header class="space-y-3">
+    <h1 class="text-3xl font-bold tracking-tight text-slate-900">backlog-frontend &mdash; deepening opportunities</h1>
+    <div class="flex items-center gap-6 text-sm text-slate-500">
+      <span>2026-07-27</span>
+      <span>branch: <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">main</code></span>
+      <span>commit: <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">ba72d5a</code></span>
+    </div>
+
+    <div class="flex flex-wrap gap-3 pt-2">
+      <div class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded border-2 border-emerald-400 bg-emerald-50"></span> deep module</div>
+      <div class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded border-2 border-dashed border-red-400"></span> shallow / leaky</div>
+      <div class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 border-t-2 border-dashed border-red-400 w-6"></span> leakage across seam</div>
+    </div>
+  </header>
+
+  <!-- ====== CANDIDATES ====== -->
+  <section id="candidates" class="space-y-10">
+
+    <!-- ═══════ CANDIDATE A ═══════ -->
+    <article class="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">A. Collapse the transition-error flow into a <code>useTransition</code> hook</h2>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Strong</span>
+          <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500">in-process</span>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-slate-500 space-x-3">
+        <span>src/App.tsx</span><span>src/lib/transitions.ts</span><span>src/components/StoryDetail.tsx</span><span>src/components/TerminalView.tsx</span><span>src/components/Board.tsx</span>
+      </div>
+
+      <!-- Before / After -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Before -->
+        <div class="rounded-lg border border-red-200 bg-red-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Before</p>
+          <pre class="mermaid">
+graph TD
+    SD[StoryDetail] -->|onTransition| App
+    TV[TerminalView] -->|onReactivate| App
+    App -->|setTransitionError| Toast[Error Toast]
+    App -->|performTransition| Runner[TransitionRunner]
+    Runner -->|updateStoryStatus| Adapter[SupabaseAdapter]
+    Adapter --> DB[(Supabase)]
+
+    classDef shallow fill:#fef2f2,stroke:#f87171,stroke-dasharray:4 2;
+    class App shallow;
+    class Toast shallow;
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">App.tsx is a pass-through: it receives transition calls, delegates to the Runner, then sets error state for a toast. Two callers thread through one shallow orchestrator.</p>
+        </div>
+
+        <!-- After -->
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">After</p>
+          <pre class="mermaid">
+graph TD
+    Hook[useTransition hook]
+    SD[StoryDetail] -->|performTransition| Hook
+    TV[TerminalView] -->|performTransition| Hook
+    Hook -->|validate| Runner[TransitionRunner]
+    Hook -->|error state| SD
+    Hook -->|error state| TV
+    Runner --> Adapter[SupabaseAdapter]
+    Adapter --> DB[(Supabase)]
+
+    classDef deep fill:#ecfdf5,stroke:#34d399,stroke-width:3px;
+    class Hook deep;
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">One hook owns the transition call, the error state, and the success side-effects. Callers get <code>{ performTransition, error }</code> &mdash; a small interface.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Problem</p>
+          <p class="text-sm text-slate-700">The Transition flow spans four modules (App, transitionRunner, adapter, re-render) with <code>handleTransition</code> and <code>handleReactivate</code> in App.tsx acting as shallow shims that add error-toast wiring.</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solution</p>
+          <p class="text-sm text-slate-700">A <code>useTransition(adapter)</code> hook returns <code>{ performTransition, error, clearError }</code>. Board and TerminalView call it directly. App.tsx drops two pass-through callbacks and one useState.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Wins</p>
+        <ul class="text-sm text-slate-600 space-y-0.5 list-disc list-inside">
+          <li>Locality: transition error state lives with the transition call</li>
+          <li>Leverage: one hook, two call sites (StoryDetail + TerminalView), zero pass-throughs</li>
+          <li>App.tsx loses ~25 lines of shallow wiring</li>
+          <li>Tests: transition error handling testable without mounting App</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ═══════ CANDIDATE B ═══════ -->
+    <article class="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">B. Pre-resolve StoryDetail cross-references; shrink the interface</h2>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Worth exploring</span>
+          <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500">in-process</span>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-slate-500 space-x-3">
+        <span>src/components/StoryDetail.tsx</span><span>src/components/Board.tsx</span>
+      </div>
+
+      <!-- Before / After: Interface mass diagram -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-red-200 bg-red-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Before &mdash; wide interface, shallow implementation</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-mono text-slate-500 w-16 shrink-0">Interface</span>
+              <div class="flex-1 bg-red-200 h-36 rounded flex flex-col justify-center px-3 space-y-1">
+                <span class="text-[10px] font-mono text-red-800">story: Story</span>
+                <span class="text-[10px] font-mono text-red-800">allStories: Story[]</span>
+                <span class="text-[10px] font-mono text-red-800">blockers: Blocker[]</span>
+                <span class="text-[10px] font-mono text-red-800">dependencies: Dependency[]</span>
+                <span class="text-[10px] font-mono text-red-800">isAuthenticated: boolean</span>
+                <span class="text-[10px] font-mono text-red-800">onTransition: fn</span>
+                <span class="text-[10px] font-mono text-red-800">onClose: fn</span>
+                <span class="text-[10px] text-red-600 text-center mt-1">7 props, 3 raw ref arrays</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-mono text-slate-500 w-16 shrink-0">Impl</span>
+              <div class="flex-1 bg-slate-100 h-12 rounded flex items-center justify-center">
+                <span class="text-[10px] text-slate-500">getDepStory() = allStories.find() &times; N</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">StoryDetail's interface is nearly as wide as its implementation. The <code>getDepStory</code> helper does linear searches at render time &mdash; complexity that belongs in the caller.</p>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">After &mdash; small interface, pre-resolved data</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-mono text-slate-500 w-16 shrink-0">Interface</span>
+              <div class="flex-1 bg-emerald-100 h-20 rounded flex flex-col justify-center px-3 space-y-1">
+                <span class="text-[10px] font-mono text-emerald-800">story: Story</span>
+                <span class="text-[10px] font-mono text-emerald-800">resolvedBlockers: ResolvedBlocker[]</span>
+                <span class="text-[10px] font-mono text-emerald-800">resolvedDeps: ResolvedDependency[]</span>
+                <span class="text-[10px] font-mono text-emerald-800">onTransition: fn</span>
+                <span class="text-[10px] font-mono text-emerald-800">onClose: fn</span>
+                <span class="text-[10px] text-emerald-600 text-center mt-1">5 props, 0 raw ref arrays</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-mono text-slate-500 w-16 shrink-0">Impl</span>
+              <div class="flex-1 bg-slate-800 h-16 rounded flex items-center justify-center">
+                <span class="text-[10px] text-slate-300">Pure rendering &mdash; no traversal, no .find()</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">Cross-references resolved in <code>useStoryDetail</code> hook or at the Board level. StoryDetail becomes a pure render module.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Problem</p>
+          <p class="text-sm text-slate-700">StoryDetail receives raw reference arrays (<code>allStories</code>, <code>blockers</code>, <code>dependencies</code>) and performs linear lookups at render time to resolve blocker keys and dependency statuses. The interface is wide; the implementation is thin traversal.</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solution</p>
+          <p class="text-sm text-slate-700">Introduce <code>ResolvedBlocker</code> and <code>ResolvedDependency</code> types with story references already inlined. Resolve them in Board.tsx (or a <code>useResolvedStory</code> hook) before passing to StoryDetail.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Wins</p>
+        <ul class="text-sm text-slate-600 space-y-0.5 list-disc list-inside">
+          <li>Interface shrinks from 7 props to 5; raw arrays become resolved objects</li>
+          <li>Locality: cross-reference resolution lives where the data lives (Board, not Detail)</li>
+          <li>Tests: StoryDetail tests no longer need to construct matching allStories arrays with the right IDs</li>
+          <li>Leverage: if another view needs resolved blocker/dep data, the hook is already there</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ═══════ CANDIDATE C ═══════ -->
+    <article class="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">C. Unify <code>BoardDataAdapter</code> and <code>TransitionAdapter</code> into one interface</h2>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Worth exploring</span>
+          <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500">ports & adapters</span>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-slate-500 space-x-3">
+        <span>src/lib/data.ts</span><span>src/lib/transitions.ts</span><span>src/adapters/supabase-adapter.ts</span>
+      </div>
+
+      <!-- Before / After: cross-section -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-red-200 bg-red-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Before &mdash; two interfaces, one adapter</p>
+          <pre class="mermaid">
+graph TD
+    subgraph "lib/data.ts"
+      BDA[BoardDataAdapter]
+    end
+    subgraph "lib/transitions.ts"
+      TA[TransitionAdapter]
+    end
+    subgraph "adapters/"
+      SA[SupabaseAdapter]
+    end
+    App -->|useMemo| SA
+    SA -->|implements| BDA
+    SA -->|implements| TA
+    BDA -->|used by| Hook[useBoardData]
+    TA -->|used by| Runner[TransitionRunner]
+
+    classDef iface fill:#fef2f2,stroke:#f87171,stroke-dasharray:4 2;
+    class BDA iface;
+    class TA iface;
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">The SupabaseAdapter satisfies both interfaces, but they're defined in separate files. The <code>updateStoryStatus</code> method shape appears in both. One concrete adapter, two interface declarations = a false split.</p>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">After &mdash; one interface at one seam</p>
+          <pre class="mermaid">
+graph TD
+    subgraph "lib/adapter.ts"
+      BA[BacklogAdapter<br/>fetchAll<br/>updateStoryStatus<br/>onDataChange]
+    end
+    subgraph "adapters/"
+      SA[SupabaseAdapter]
+      MA[MemoryAdapter]
+    end
+    SA -->|implements| BA
+    MA -->|implements| BA
+    BA -->|used by| Hook[useBoardData]
+    BA -->|used by| Runner[TransitionRunner]
+
+    classDef deep fill:#ecfdf5,stroke:#34d399,stroke-width:3px;
+    class BA deep;
+          </pre>
+          <p class="text-xs text-slate-500 mt-2">One interface with three methods. Two adapters (prod + test) justify the seam. The interface definition and both adapters can live in one file.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Problem</p>
+          <p class="text-sm text-slate-700"><code>BoardDataAdapter</code> (in <code>lib/data.ts</code>) and <code>TransitionAdapter</code> (in <code>lib/transitions.ts</code>) are separate interfaces, but the same concrete adapter always implements both. The split is a design artifact, not a real seam &mdash; there is no scenario where they vary independently.</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solution</p>
+          <p class="text-sm text-slate-700">Merge into a single <code>BacklogAdapter</code> interface with three methods: <code>fetchAll</code>, <code>updateStoryStatus</code>, <code>onDataChange</code>. Move both adapter implementations next to it.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Wins</p>
+        <ul class="text-sm text-slate-600 space-y-0.5 list-disc list-inside">
+          <li>One interface to understand, not two</li>
+          <li>Two adapters (Supabase + Memory) justify the seam</li>
+          <li>Deletion test: removing data.ts and transitions.ts interface types concentrates nothing in callers</li>
+          <li><code>TransitionAdapter</code> is just <code>Pick&lt;BacklogAdapter, 'updateStoryStatus'&gt;</code> &mdash; a derived type, not its own module</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ═══════ CANDIDATE D ═══════ -->
+    <article class="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">D. Extract project-selection state machine into <code>useProjectSelection</code></h2>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Worth exploring</span>
+          <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500">in-process</span>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-slate-500 space-x-3">
+        <span>src/App.tsx</span><span>src/hooks/useProjectSelection.ts (new)</span>
+      </div>
+
+      <!-- Before / After: call-graph collapse -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-red-200 bg-red-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Before &mdash; state machine encoded across three locations</p>
+          <div class="space-y-1.5">
+            <div class="border border-dashed border-red-300 rounded px-2 py-1 bg-white">
+              <span class="text-[10px] font-mono text-red-700">// App.tsx L16-24</span>
+              <span class="text-[10px] block text-slate-600">getSavedProjectId() → localStorage</span>
+            </div>
+            <div class="text-[10px] text-slate-400 text-center">&#8595;</div>
+            <div class="border border-dashed border-red-300 rounded px-2 py-1 bg-white">
+              <span class="text-[10px] font-mono text-red-700">// App.tsx L38-40</span>
+              <span class="text-[10px] block text-slate-600">useState(() =&gt; getSavedProjectId())</span>
+            </div>
+            <div class="text-[10px] text-slate-400 text-center">&#8595;</div>
+            <div class="border border-dashed border-red-300 rounded px-2 py-1 bg-white">
+              <span class="text-[10px] font-mono text-red-700">// App.tsx L47-57</span>
+              <span class="text-[10px] block text-slate-600">useEffect: restore saved OR fallback to first</span>
+              <span class="text-[10px] block text-slate-600">guarded by `initialized` boolean</span>
+            </div>
+            <div class="text-[10px] text-slate-400 text-center">&#8595;</div>
+            <div class="border border-dashed border-red-300 rounded px-2 py-1 bg-white">
+              <span class="text-[10px] font-mono text-red-700">// App.tsx L60-63</span>
+              <span class="text-[10px] block text-slate-600">handleProjectChange → set + save to localStorage</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">The "which project?" question is answered by code scattered across 4 locations in App.tsx, guarded by a boolean flag. The deletion test: remove the <code>initialized</code> flag and the selection logic spreads even further.</p>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">After &mdash; one hook, one interface</p>
+          <div class="border-2 border-emerald-400 rounded-lg p-3 bg-white">
+            <span class="text-[10px] font-mono text-emerald-700">useProjectSelection(projects)</span>
+            <div class="mt-2 grid grid-cols-2 gap-1">
+              <span class="text-[10px] text-slate-500">→ selectedProject</span>
+              <span class="text-[10px] text-slate-500">→ selectProject(id)</span>
+              <span class="text-[10px] text-slate-500">→ filteredStories</span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-emerald-200">
+              <span class="text-[10px] text-slate-400">Internals: localStorage restore, fallback, persistence on change. Zero callers see the `initialized` flag.</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">One module with a 3-method interface. localStorage read, initialization guard, and persistence are implementation details behind the seam.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Problem</p>
+          <p class="text-sm text-slate-700">Project selection logic spans three locations in App.tsx (localStorage read, useState initializer, useEffect with <code>initialized</code> guard) plus a separate <code>handleProjectChange</code> callback. The <code>initialized</code> boolean is a hand-rolled state machine that guards against repeated effect fires.</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solution</p>
+          <p class="text-sm text-slate-700">A <code>useProjectSelection(projects)</code> hook encapsulates all four concerns: restore from localStorage, fallback to first project, persist on change, and expose the filtered story list. App.tsx calls it once.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Wins</p>
+        <ul class="text-sm text-slate-600 space-y-0.5 list-disc list-inside">
+          <li>Locality: all project-selection logic in one module, not scattered across App.tsx</li>
+          <li>The <code>initialized</code> flag disappears behind the interface</li>
+          <li>Tests: selection logic testable without mounting App or localStorage mocks</li>
+          <li>App.tsx loses ~15 lines and one useEffect</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ═══════ CANDIDATE E ═══════ -->
+    <article class="rounded-xl border border-slate-200 bg-white p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">E. Consolidate priority display into one source of truth</h2>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">Speculative</span>
+          <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500">in-process</span>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-slate-500 space-x-3">
+        <span>src/types.ts</span><span>src/index.css</span><span>src/components/StoryCard.tsx</span>
+      </div>
+
+      <!-- Before / After: dual-source diagram -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-red-200 bg-red-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Before &mdash; two sources of truth</p>
+          <div class="space-y-3">
+            <div class="border border-dashed border-red-300 rounded p-2 bg-white">
+              <span class="text-[10px] font-mono text-red-700">index.css</span>
+              <div class="text-[9px] text-slate-500 mt-1 font-mono space-y-0">
+                <span>--color-priority-1: #F87171</span>
+                <span>--color-priority-2: #FB923C</span>
+                <span>--color-priority-3: #FBBF24</span>
+                <span>--color-priority-4: #9CA3AF</span>
+              </div>
+            </div>
+            <div class="text-[10px] text-red-400 text-center font-semibold">&#8595; duplicated &#8593;</div>
+            <div class="border border-dashed border-red-300 rounded p-2 bg-white">
+              <span class="text-[10px] font-mono text-red-700">types.ts</span>
+              <div class="text-[9px] text-slate-500 mt-1 font-mono space-y-0">
+                <span>PRIORITY_COLORS[1] = "var(--color-priority-1)"</span>
+                <span>PRIORITY_BG[1] = "rgba(248,113,113,0.15)"</span>
+                <span>resolvePriority(): PriorityDisplay</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">Adding Priority 5 means editing CSS variables AND TypeScript constants AND the <code>Record&lt;number, ...&gt;</code> type bounds. Three places, one concept.</p>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3">After &mdash; CSS is the source; TypeScript references it</p>
+          <div class="border-2 border-emerald-400 rounded-lg p-3 bg-white">
+            <span class="text-[10px] font-mono text-emerald-700">index.css</span>
+            <div class="text-[9px] text-slate-500 mt-1 font-mono space-y-0">
+              <span>--priority-1: #F87171</span>
+              <span>--priority-1-bg: rgba(248,113,113,0.15)</span>
+              <span>--priority-1-label: "Critical"</span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-emerald-200">
+              <span class="text-[9px] text-slate-500">Components read colors via <code>var()</code> inline styles. <code>PRIORITY_COLORS</code> and <code>PRIORITY_BG</code> deleted. <code>resolvePriority</code> reads CSS custom properties at runtime.</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">One place to add a priority level. The CSS theme defines the value; TypeScript references it via <code>getComputedStyle</code> or inline <code>var()</code> references.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Problem</p>
+          <p class="text-sm text-slate-700">Priority colors live in two places: CSS theme variables in <code>index.css</code> and TypeScript constants in <code>types.ts</code> (<code>PRIORITY_COLORS</code>, <code>PRIORITY_BG</code>, <code>resolvePriority</code>). The <code>resolvePriority</code> function is a thin lookup &mdash; delete it and callers just inline <code>var()</code>.</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solution</p>
+          <p class="text-sm text-slate-700">Define each priority as a CSS-driven data attribute or custom property set. Components read colors directly via <code>var(--priority-${n})</code>. Delete the three TypeScript lookup tables. Add a new priority by adding one CSS block.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Wins</p>
+        <ul class="text-sm text-slate-600 space-y-0.5 list-disc list-inside">
+          <li>Deletion test: removing <code>PRIORITY_COLORS</code>, <code>PRIORITY_BG</code>, and <code>resolvePriority</code> concentrates nothing in callers</li>
+          <li>One place to add a priority level (CSS only)</li>
+          <li>Components already use inline <code>style=</code> for priority colors &mdash; the TS constants are an unnecessary indirection</li>
+        </ul>
+      </div>
+    </article>
+
+  </section>
+
+  <!-- ====== TOP RECOMMENDATION ====== -->
+  <section id="top-recommendation" class="rounded-xl border-2 border-emerald-400 bg-emerald-50/40 p-6 space-y-3">
+    <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Top recommendation</p>
+    <h2 class="text-xl font-bold text-slate-900"><a href="#candidates" class="hover:underline">Candidate A: Collapse the transition-error flow into a <code>useTransition</code> hook</a></h2>
+    <p class="text-sm text-slate-700 max-w-prose">This is the highest-leverage deepening available. The transition flow touches four modules today (App &rarr; TransitionRunner &rarr; Adapter &rarr; re-render), with App.tsx acting as a shallow pass-through shim that adds error-toast wiring. A <code>useTransition</code> hook puts the entire flow behind one small interface: <code>{ performTransition, error, clearError }</code>. Two callers (StoryDetail, TerminalView) get the same capability without threading through App. App.tsx drops two callbacks and one useState. The seam already exists &mdash; the TransitionRunner is deep, the adapter is swappable &mdash; but the <em>callers</em> still route through a shallow orchestrator.</p>
+    <p class="text-sm text-slate-500">Start here. Candidates B and D (pre-resolved references, project-selection hook) are natural follow-ups that further shrink App.tsx. Candidate C (unified adapter) is the right long-term seam but can happen independently.</p>
+  </section>
+
+  <footer class="text-xs text-slate-400 pt-6 border-t border-slate-200">
+    backlog-frontend architecture review &middot; 2026-07-27 &middot; commit ba72d5a &middot; generated with /improve-codebase-architecture
+  </footer>
+
+</main>
+
+</body>
+</html>
