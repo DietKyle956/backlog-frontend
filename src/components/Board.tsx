@@ -410,6 +410,7 @@ export function Board({
           onClose={() => setSelectedStory(null)}
           onSignIn={onSignIn}
           adapter={adapter}
+          onRefresh={onRefresh}
         />
       )}
     </div>

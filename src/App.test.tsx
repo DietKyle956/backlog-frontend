@@ -73,6 +73,14 @@ vi.mock("./adapters/supabase-adapter", () => ({
       const story = mocks.store.data.stories.find((s) => s.id === storyId);
       if (!story) return { error: "Story not found" };
       story.status = status as never;
+      // Snapshot store into fresh references so React detects the change
+      // when fetchAll is called (e.g. via onRefresh after a transition).
+      mocks.store.data = {
+        ...mocks.store.data,
+        stories: [...mocks.store.data.stories],
+        blockers: [...mocks.store.data.blockers],
+        dependencies: [...mocks.store.data.dependencies],
+      };
       return {};
     },
     onDataChange: (cb: () => void) => {
@@ -1896,6 +1904,42 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
       expect(screen.getByText("Ready")).toBeInTheDocument();
       expect(screen.getByText("Cancelled")).toBeInTheDocument();
     });
+  });
+
+  it("performs transition and closes overlay after successful status update", async () => {
+    mocks.mockAuth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "test-user" } } },
+    });
+
+    localStorage.setItem("backlog-last-project-id", "3");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+    });
+
+    // Open detail overlay
+    await userEvent.click(screen.getByText("CIQ-002"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Transition")).toBeInTheDocument();
+    });
+
+    // CIQ-002 is in backlog, so "Ready" should be an available transition target
+    const readyButton = screen.getByText("Ready");
+    expect(readyButton).toBeInTheDocument();
+
+    // Click the Ready transition button
+    await userEvent.click(readyButton);
+
+    // After successful transition, the overlay should close
+    await waitFor(() => {
+      expect(screen.queryByText("Transition")).not.toBeInTheDocument();
+    });
+
+    // Verify the story status was updated in the store
+    const updatedStory = mocks.store.data!.stories.find((s) => s.id === 2);
+    expect(updatedStory!.status).toBe("ready");
   });
 
   it("auth state change listener updates UI from unauthenticated to authenticated", async () => {

@@ -12,6 +12,7 @@ interface StoryDetailProps {
   onClose: () => void;
   onSignIn: () => void;
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
+  onRefresh?: () => Promise<void>;
 }
 
 export function StoryDetail({
@@ -22,6 +23,7 @@ export function StoryDetail({
   onClose,
   onSignIn,
   adapter,
+  onRefresh,
 }: StoryDetailProps) {
   const { performTransition, error, clearError } = useTransition(adapter);
   const unresolvedBlockers = resolvedBlockers.filter((b) => !b.resolved_at);
@@ -244,6 +246,7 @@ export function StoryDetail({
                         target,
                       );
                       if (result.success) {
+                        await onRefresh?.();
                         onClose();
                       }
                     }}
