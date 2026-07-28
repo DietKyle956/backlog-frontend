@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Project, Story, StoryStatus } from "../types";
 import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
 
@@ -24,6 +24,49 @@ export function TerminalView({
   const [confirmingStoryId, setConfirmingStoryId] = useState<number | null>(
     null,
   );
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (confirmingStoryId === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setConfirmingStoryId(null);
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusableElements =
+          modalRef.current.querySelectorAll<HTMLElement>(
+            "button:not([disabled])",
+          );
+        const firstFocusable = focusableElements[0];
+        const lastFocusable = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusable) {
+            e.preventDefault();
+            lastFocusable?.focus();
+          }
+        } else {
+          if (document.activeElement === lastFocusable) {
+            e.preventDefault();
+            firstFocusable?.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    const firstButton =
+      modalRef.current?.querySelector<HTMLButtonElement>("button");
+    firstButton?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [confirmingStoryId]);
 
   const terminalStories = stories.filter((s) =>
     TERMINAL_STATUSES.includes(s.status as StoryStatus),
@@ -156,15 +199,26 @@ export function TerminalView({
         const story = stories.find((s) => s.id === confirmingStoryId);
         if (!story) return null;
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            ref={modalRef}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => setConfirmingStoryId(null)}
             />
             {/* Dialog */}
-            <div className="relative bg-surface rounded-xl border border-border-subtle shadow-2xl p-6 max-w-sm w-full animate-scale-in">
-              <h2 className="text-lg font-bold text-text-primary mb-2">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reactivate-dialog-heading"
+              className="relative bg-surface rounded-xl border border-border-subtle shadow-2xl p-6 max-w-sm w-full animate-scale-in"
+            >
+              <h2
+                id="reactivate-dialog-heading"
+                className="text-lg font-bold text-text-primary mb-2"
+              >
                 Reactivate Story
               </h2>
               <p className="text-sm text-text-secondary mb-6">
