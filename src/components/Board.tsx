@@ -6,7 +6,7 @@ import type {
   ResolvedBlocker,
   ResolvedDependency,
 } from "../types";
-import { COLUMN_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "../types";
+import { COLUMN_LABELS, PRIORITY_LABELS } from "../types";
 import type { BacklogAdapter } from "../lib/adapter";
 import { computeColumns } from "../lib/columns";
 import { StoryCard } from "./StoryCard";
@@ -180,7 +180,7 @@ export function Board({
             {[1, 2, 3, 4].map((p) => {
               const isActive = priorityFilter.size === 0 || priorityFilter.has(p);
               const label = PRIORITY_LABELS[p];
-              const colorVar = PRIORITY_COLORS[p];
+              const colorVar = `var(--color-priority-${p})`;
               return (
                 <button
                   key={p}

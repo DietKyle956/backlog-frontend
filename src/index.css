@@ -16,6 +16,10 @@
   --color-priority-2: #FB923C;
   --color-priority-3: #FBBF24;
   --color-priority-4: #9CA3AF;
+  --color-priority-1-bg: rgba(248,113,113,0.15);
+  --color-priority-2-bg: rgba(251,146,60,0.15);
+  --color-priority-3-bg: rgba(251,191,36,0.15);
+  --color-priority-4-bg: rgba(156,163,175,0.15);
 }
 
 * {
