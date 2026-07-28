@@ -213,6 +213,7 @@ export function App() {
             isAuthenticated={isAuthenticated}
             adapter={adapter}
             onRefresh={refetch}
+            onSignIn={handleSignIn}
           />
         )
       )}

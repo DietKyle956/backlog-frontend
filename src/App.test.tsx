@@ -1959,4 +1959,75 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
       expect(screen.queryByText("Sign Out")).not.toBeInTheDocument();
     });
   });
+
+  describe("BLF-020: Sign in to edit prompt in detail overlay when unauthenticated", () => {
+    it("shows lock icon and Sign in to edit button in detail overlay when unauthenticated", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign in to edit")).toBeInTheDocument();
+      });
+
+      // The Sign in to edit text is inside a button with aria-label="Sign in to edit"
+      const signInButton = screen.getByLabelText("Sign in to edit");
+      expect(signInButton).toBeInTheDocument();
+      expect(signInButton.tagName).toBe("BUTTON");
+
+      // Lock icon is present (inline SVG with aria-hidden)
+      const lockIcon = signInButton.querySelector('svg[aria-hidden="true"]');
+      expect(lockIcon).toBeInTheDocument();
+    });
+
+    it("clicking Sign in to edit button in detail overlay triggers GitHub OAuth sign in", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("Sign in to edit")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByLabelText("Sign in to edit"));
+
+      expect(mocks.mockAuth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "github",
+        options: {
+          redirectTo: window.location.origin + "/backlog-frontend/",
+        },
+      });
+    });
+
+    it("prompt disappears from detail overlay after successful authentication", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Sign in to edit")).not.toBeInTheDocument();
+        expect(screen.queryByText("Sign in to edit")).not.toBeInTheDocument();
+      });
+    });
+  });
 });

@@ -19,6 +19,7 @@ interface BoardProps {
   isAuthenticated: boolean;
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
   onRefresh: () => Promise<void>;
+  onSignIn: () => void;
 }
 
 export function Board({
@@ -28,6 +29,7 @@ export function Board({
   isAuthenticated,
   adapter,
   onRefresh,
+  onSignIn,
 }: BoardProps) {
   const [currentColumnIndex, setCurrentColumnIndex] = useState(0);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
@@ -406,6 +408,7 @@ export function Board({
           resolvedDependencies={resolvedDependencies}
           isAuthenticated={isAuthenticated}
           onClose={() => setSelectedStory(null)}
+          onSignIn={onSignIn}
           adapter={adapter}
         />
       )}
