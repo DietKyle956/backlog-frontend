@@ -1,5 +1,5 @@
 import type { Story, ResolvedBlocker, ResolvedDependency } from "../types";
-import { COLUMN_LABELS, resolvePriority } from "../types";
+import { COLUMN_LABELS, PRIORITY_LABELS } from "../types";
 import { getAllowedTargets } from "../lib/transitions";
 import type { BacklogAdapter } from "../lib/adapter";
 import { useTransition } from "../hooks/useTransition";
@@ -24,8 +24,10 @@ export function StoryDetail({
   const { performTransition, error, clearError } = useTransition(adapter);
   const unresolvedBlockers = resolvedBlockers.filter((b) => !b.resolved_at);
   const blockingResolved = resolvedBlockers.filter((b) => b.resolved_at);
-  const { label: priorityLabel, color: priorityColor, bg: priorityBg } =
-    resolvePriority(story.priority);
+  const p = story.priority in PRIORITY_LABELS ? story.priority : 4;
+  const priorityLabel = PRIORITY_LABELS[p];
+  const priorityColor = `var(--color-priority-${p})`;
+  const priorityBg = `var(--color-priority-${p}-bg)`;
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("en-US", {

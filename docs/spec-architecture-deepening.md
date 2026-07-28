@@ -91,7 +91,7 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 ### Candidate E: Priority consolidation
 
 - Delete `PRIORITY_COLORS`, `PRIORITY_BG`, and `resolvePriority` from `types.ts`.
-- Components that currently call `resolvePriority(priority)` instead read CSS custom properties inline: `style={{ backgroundColor: `var(--priority-${priority}-bg)`, color: `var(--priority-${priority}-color)` }}`.
+- Components that currently call `resolvePriority(priority)` instead read CSS custom properties inline: `style={{ color: \`var(--color-priority-${p})\`, backgroundColor: \`var(--color-priority-${p}-bg)\` }}`.
 - The priority labels (`PRIORITY_LABELS`) stay — they're data, not presentation.
 - `index.css` already defines `--color-priority-1` through `--color-priority-4`. Add matching background variants as `--color-priority-1-bg` through `--color-priority-4-bg` so the inline `var()` references work.
 
@@ -103,7 +103,7 @@ The candidates are designed to compose without conflicts, but the recommended or
 2. ~~**Candidate A** (useTransition hook)~~ ✅ Done (BLF-028)
 3. ~~**Candidate D** (useProjectSelection hook)~~ ✅ Done (BLF-029)
 4. ~~**Candidate B** (pre-resolved detail props)~~ ✅ Done (BLF-030) — shrinks StoryDetail's interface from 7 to 6 props.
-5. **Candidate E** (priority consolidation) — independent cleanup, can land any time.
+5. **Candidate E** (priority consolidation) ✅ Done (BLF-031)
 
 ## Testing Decisions
 
