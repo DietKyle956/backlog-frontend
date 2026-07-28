@@ -115,10 +115,8 @@ export function Board({
       Math.abs(deltaX) > 60
     ) {
       navigateColumn(deltaX > 0 ? "left" : "right");
-    }
-
-    // Pull-to-refresh trigger
-    if (pullDistance >= PULL_THRESHOLD && pullState === "pulling") {
+    } else if (pullDistance >= PULL_THRESHOLD && pullState === "pulling") {
+      // Pull-to-refresh trigger
       setPullState("refreshing");
       onRefresh().finally(() => {
         setPullState("idle");

@@ -7,14 +7,12 @@ interface BoardDataState {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  refreshing: boolean;
 }
 
 export function useBoardData(adapter: BacklogAdapter): BoardDataState {
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const result = await adapter.fetchAll();
@@ -41,13 +39,8 @@ export function useBoardData(adapter: BacklogAdapter): BoardDataState {
   }, [adapter, fetchAll]);
 
   const refetch = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await fetchAll();
-    } finally {
-      setRefreshing(false);
-    }
+    await fetchAll();
   }, [fetchAll]);
 
-  return { data, loading, error, refetch, refreshing };
+  return { data, loading, error, refetch };
 }
