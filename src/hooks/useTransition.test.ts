@@ -3,7 +3,6 @@ import { renderHook, act } from "@testing-library/react";
 import { useTransition } from "./useTransition";
 import type { BacklogAdapter } from "../lib/adapter";
 import type { StoryStatus } from "../types";
-import type { ClassifiedError } from "../lib/error-classification";
 
 function createStubAdapter(
   behavior?: "success" | "error",

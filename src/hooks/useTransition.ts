@@ -5,24 +5,6 @@ import {
   createTransitionRunner,
   type TransitionResult,
 } from "../lib/transitions";
-
-export interface UseTransitionReturn {
-  performTransition: (
-    storyId: number,
-    currentStatus: StoryStatus,
-    newStatus: StoryStatus,
-  ) => Promise<TransitionResult>;
-  error: string | null;
-  clearError: () => void;
-}
-
-import { useState, useMemo, useCallback } from "react";
-import type { StoryStatus } from "../types";
-import type { BacklogAdapter } from "../lib/adapter";
-import {
-  createTransitionRunner,
-  type TransitionResult,
-} from "../lib/transitions";
 import {
   classifyTransitionError,
   type ClassifiedError,

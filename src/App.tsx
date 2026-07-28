@@ -5,6 +5,7 @@ import { useBoardData } from "./hooks/useBoardData";
 import { useTransition } from "./hooks/useTransition";
 import { useProjectSelection } from "./hooks/useProjectSelection";
 import { Board } from "./components/Board";
+import { TransitionErrorBanner } from "./components/TransitionErrorBanner";
 import { SkeletonCard } from "./components/SkeletonCard";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
@@ -214,48 +215,11 @@ export function App() {
 
       {/* Transition error banner */}
       {transitionError && (
-        <div className="mx-4 mt-3 px-3 py-2.5 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm leading-snug">{transitionError.message}</p>
-            <button
-              type="button"
-              onClick={clearTransitionError}
-              className="ml-2 underline text-xs flex-shrink-0 hover:text-accent-danger/80 transition-colors"
-            >
-              Dismiss
-            </button>
-          </div>
-          {transitionError.action && (
-            <div className="mt-2 pt-2 border-t border-accent-danger/20">
-              {transitionError.action.handler === "sign-in" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearTransitionError();
-                    handleSignIn();
-                  }}
-                  className="text-xs font-medium px-3 py-1 rounded-md
-                             bg-accent-danger/20 text-accent-danger
-                             hover:bg-accent-danger/30 active:scale-95
-                             transition-all duration-100"
-                >
-                  Sign In to retry
-                </button>
-              ) : transitionError.action.handler === "retry" ? (
-                <button
-                  type="button"
-                  onClick={clearTransitionError}
-                  className="text-xs font-medium px-3 py-1 rounded-md
-                             bg-accent-danger/20 text-accent-danger
-                             hover:bg-accent-danger/30 active:scale-95
-                             transition-all duration-100"
-                >
-                  Dismiss and retry
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
+        <TransitionErrorBanner
+          error={transitionError}
+          onDismiss={clearTransitionError}
+          onSignIn={handleSignIn}
+        />
       )}
 
       {/* Board or Terminal view */}
