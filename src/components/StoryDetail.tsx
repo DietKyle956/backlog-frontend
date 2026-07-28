@@ -10,6 +10,7 @@ interface StoryDetailProps {
   resolvedDependencies: ResolvedDependency[];
   isAuthenticated: boolean;
   onClose: () => void;
+  onSignIn: () => void;
   adapter: Pick<BacklogAdapter, "updateStoryStatus">;
 }
 
@@ -19,6 +20,7 @@ export function StoryDetail({
   resolvedDependencies,
   isAuthenticated,
   onClose,
+  onSignIn,
   adapter,
 }: StoryDetailProps) {
   const { performTransition, error, clearError } = useTransition(adapter);
@@ -256,9 +258,31 @@ export function StoryDetail({
               </div>
             </>
           ) : (
-            <p className="text-sm text-text-muted italic">
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="flex items-center gap-2 text-sm text-text-muted
+                         hover:text-accent transition-colors duration-150
+                         bg-surface-raised border border-border-subtle
+                         rounded-lg px-4 py-3 w-full"
+              aria-label="Sign in to edit"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
               Sign in to edit
-            </p>
+            </button>
           )}
         </div>
 

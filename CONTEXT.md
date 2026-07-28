@@ -93,7 +93,7 @@ A Story may be linked to a GitHub Issue. The linkage is tracked via `github_sync
 
 ## Viewer
 
-A Viewer is an unauthenticated visitor to the Board. Viewers can see everything: the Board, all Stories, all detail views. Viewers cannot Transition stories. Where the Transition UI would appear, a Viewer sees a "Sign in to edit" prompt.
+A Viewer is an unauthenticated visitor to the Board. Viewers can see everything: the Board, all Stories, all detail views. Viewers cannot Transition stories. Where the Transition UI would appear, a Viewer sees a clickable "Sign in to edit" button with a lock icon. Clicking it triggers the GitHub OAuth sign-in flow.
 
 ## Owner
 
