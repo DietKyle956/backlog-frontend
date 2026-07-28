@@ -3,10 +3,9 @@ import type {
   Story,
   Blocker,
   Dependency,
-  StoryStatus,
 } from "../types";
 import { COLUMN_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "../types";
-import type { TransitionResult } from "../lib/transitions";
+import type { BacklogAdapter } from "../lib/adapter";
 import { computeColumns } from "../lib/columns";
 import { StoryCard } from "./StoryCard";
 import { StoryDetail } from "./StoryDetail";
@@ -16,11 +15,7 @@ interface BoardProps {
   blockers: Blocker[];
   dependencies: Dependency[];
   isAuthenticated: boolean;
-  onTransition: (
-    storyId: number,
-    currentStatus: StoryStatus,
-    newStatus: StoryStatus,
-  ) => Promise<TransitionResult>;
+  adapter: Pick<BacklogAdapter, "updateStoryStatus">;
 }
 
 export function Board({
@@ -28,7 +23,7 @@ export function Board({
   blockers,
   dependencies,
   isAuthenticated,
-  onTransition,
+  adapter,
 }: BoardProps) {
   const [currentColumnIndex, setCurrentColumnIndex] = useState(0);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
@@ -259,7 +254,7 @@ export function Board({
           dependencies={dependencies}
           isAuthenticated={isAuthenticated}
           onClose={() => setSelectedStory(null)}
-          onTransition={onTransition}
+          adapter={adapter}
         />
       )}
     </div>

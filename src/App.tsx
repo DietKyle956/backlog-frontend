@@ -4,11 +4,7 @@ import { useBoardData } from "./hooks/useBoardData";
 import { Board } from "./components/Board";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
-import type { Project, StoryStatus } from "./types";
-import {
-  createTransitionRunner,
-  type TransitionResult,
-} from "./lib/transitions";
+import type { Project } from "./types";
 import { createSupabaseAdapter } from "./adapters/supabase-adapter";
 
 const PROJECT_STORAGE_KEY = "backlog-last-project-id";
@@ -41,7 +37,6 @@ export function App() {
   );
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [transitionError, setTransitionError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   // Restore project or default to first alphabetically
@@ -92,49 +87,6 @@ export function App() {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
   }, []);
-
-  // Transition runner uses the data adapter (which satisfies Pick<BacklogAdapter, 'updateStoryStatus'>)
-  const transitionRunner = useMemo(
-    () => createTransitionRunner(adapter),
-    [adapter],
-  );
-
-  const handleTransition = useCallback(
-    async (
-      storyId: number,
-      currentStatus: StoryStatus,
-      newStatus: StoryStatus,
-    ): Promise<TransitionResult> => {
-      setTransitionError(null);
-      const result = await transitionRunner.performTransition(
-        storyId,
-        currentStatus,
-        newStatus,
-      );
-      if (!result.success && result.error) {
-        setTransitionError(result.error);
-      }
-      return result;
-    },
-    [transitionRunner],
-  );
-
-  const handleReactivate = useCallback(
-    async (storyId: number, currentStatus: StoryStatus) => {
-      setTransitionError(null);
-      const result = await transitionRunner.performTransition(
-        storyId,
-        currentStatus,
-        "backlog",
-      );
-      if (!result.success && result.error) {
-        setTransitionError(result.error);
-      } else if (result.success) {
-        setShowTerminal(false);
-      }
-    },
-    [transitionRunner],
-  );
 
   const selectedProject = useMemo(
     () =>
@@ -264,20 +216,6 @@ export function App() {
         </div>
       </header>
 
-      {/* Transition error toast */}
-      {transitionError && (
-        <div className="mx-4 mt-2 px-4 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger">
-          {transitionError}
-          <button
-            type="button"
-            onClick={() => setTransitionError(null)}
-            className="ml-2 underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
       {/* Pull-to-refresh indicator */}
       <div className="flex justify-center py-1">
         <button
@@ -295,7 +233,7 @@ export function App() {
         <TerminalView
           stories={data.stories}
           projects={data.projects}
-          onReactivate={handleReactivate}
+          adapter={adapter}
           isAuthenticated={isAuthenticated}
           onClose={() => setShowTerminal(false)}
         />
@@ -308,7 +246,7 @@ export function App() {
             blockers={data.blockers}
             dependencies={data.dependencies}
             isAuthenticated={isAuthenticated}
-            onTransition={handleTransition}
+            adapter={adapter}
           />
         )
       )}

@@ -52,14 +52,14 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 
 ## Implementation Decisions
 
-### Candidate A: useTransition hook
+### Candidate A: useTransition hook ✅ Implemented (BLF-028)
 
 - Create `src/hooks/useTransition.ts` exporting `useTransition(adapter)` that returns `{ performTransition, error, clearError }`.
 - The hook calls `createTransitionRunner(adapter)` internally and manages `error` state via `useState`.
 - `performTransition` accepts `(storyId, currentStatus, newStatus)` and calls the runner. On success it returns the result. On failure it sets the `error` state.
 - `clearError` resets the error to `null`.
 - `StoryDetail` and `TerminalView` import `useTransition` directly instead of receiving `onTransition`/`onReactivate` as props.
-- `App.tsx` drops `handleTransition`, `handleReactivate`, `transitionError`, and the toast markup (~25 lines).
+- `App.tsx` drops `handleTransition`, `handleReactivate`, `transitionError`, and the toast markup (~68 lines).
 - The detail overlay closes on successful transition (a UX win that comes for free once the hook owns the flow).
 
 ### Candidate B: Pre-resolved detail props
@@ -71,7 +71,7 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 - `StoryDetail` drops `isAuthenticated` — it's only used to gate transition buttons, which moves to the `useTransition` hook.
 - `StoryDetail` drops `onTransition` — also moves to the hook.
 
-### Candidate C: Unified adapter interface
+### Candidate C: Unified adapter interface ✅ Implemented (BLF-027)
 
 - Merge `BoardDataAdapter` (from `lib/data.ts`) and `TransitionAdapter` (from `lib/transitions.ts`) into a single `BacklogAdapter` interface in a new file `lib/adapter.ts`.
 - The interface has three methods: `fetchAll`, `updateStoryStatus`, `onDataChange`.
@@ -100,8 +100,8 @@ Five targeted refactors that consolidate scattered logic into deep modules, each
 
 The candidates are designed to compose without conflicts, but the recommended order is:
 
-1. **Candidate C first** (unified adapter) — it changes the interface that A, B, and D depend on. Land this first so subsequent candidates import from one place.
-2. **Candidate A** (useTransition hook) — highest leverage, directly improves UX (auto-close overlay on success).
+1. ~~**Candidate C first** (unified adapter)~~ ✅ Done (BLF-027)
+2. ~~**Candidate A** (useTransition hook)~~ ✅ Done (BLF-028)
 3. **Candidate D** (useProjectSelection hook) — further shrinks App.tsx.
 4. **Candidate B** (pre-resolved detail props) — shrinks StoryDetail's interface. Depends on A (the hook removes `onTransition` and `isAuthenticated` from the interface anyway).
 5. **Candidate E** (priority consolidation) — independent cleanup, can land any time.
