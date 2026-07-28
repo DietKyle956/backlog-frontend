@@ -1,61 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "./supabase";
 import { useBoardData } from "./hooks/useBoardData";
+import { useProjectSelection } from "./hooks/useProjectSelection";
 import { Board } from "./components/Board";
 import { TerminalView } from "./components/TerminalView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
-import type { Project } from "./types";
 import { createSupabaseAdapter } from "./adapters/supabase-adapter";
-
-const PROJECT_STORAGE_KEY = "backlog-last-project-id";
-
-function getSavedProjectId(): number | null {
-  try {
-    const stored = localStorage.getItem(PROJECT_STORAGE_KEY);
-    if (stored) return Number(stored);
-  } catch {
-    // localStorage unavailable
-  }
-  return null;
-}
-
-function saveProjectId(id: number) {
-  try {
-    localStorage.setItem(PROJECT_STORAGE_KEY, String(id));
-  } catch {
-    // localStorage unavailable
-  }
-}
 
 export function App() {
   // Data-access adapter (stable reference)
   const adapter = useMemo(() => createSupabaseAdapter(), []);
 
   const { data, loading, error, refetch } = useBoardData(adapter);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
-    () => getSavedProjectId(),
-  );
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [initialized, setInitialized] = useState(false);
 
-  // Restore project or default to first alphabetically
-  useEffect(() => {
-    if (data && !initialized) {
-      const savedId = getSavedProjectId();
-      if (savedId && data.projects.some((p) => p.id === savedId)) {
-        setSelectedProjectId(savedId);
-      } else if (data.projects.length > 0) {
-        setSelectedProjectId(data.projects[0].id);
-      }
-      setInitialized(true);
-    }
-  }, [data, initialized]);
-
-  const handleProjectChange = useCallback((project: Project) => {
-    setSelectedProjectId(project.id);
-    saveProjectId(project.id);
-  }, []);
+  const { selectedProject, selectProject, filteredStories } =
+    useProjectSelection(data);
 
   // Check auth state
   useEffect(() => {
@@ -87,19 +48,6 @@ export function App() {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
   }, []);
-
-  const selectedProject = useMemo(
-    () =>
-      data?.projects.find((p) => p.id === selectedProjectId) ?? null,
-    [data, selectedProjectId],
-  );
-
-  const filteredStories = useMemo(() => {
-    if (!data || !selectedProjectId) return [];
-    return data.stories.filter(
-      (s) => s.project_id === selectedProjectId,
-    );
-  }, [data, selectedProjectId]);
 
   // Loading state
   if (loading) {
@@ -176,8 +124,8 @@ export function App() {
         {data && (
           <ProjectSwitcher
             projects={data.projects}
-            selectedId={selectedProjectId}
-            onChange={handleProjectChange}
+            selectedId={selectedProject?.id ?? null}
+            onChange={selectProject}
           />
         )}
         <div className="flex items-center gap-2">
