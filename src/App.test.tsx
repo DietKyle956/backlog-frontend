@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => {
   let fetchAllOverride: (() => Promise<{ data: AppData | null; error: string | null }>) | null = null;
 
   // Override for updateStoryStatus (failure test for BLF-023)
-  let updateStatusOverride: ((storyId: number, status: string) => { error?: string }) | null = null;
+  let updateStatusOverride: ((storyId: number, status: string) => { error?: string } | Promise<{ error?: string }>) | null = null;
 
   // Realtime subscription callback (BLF-015)
   let dataChangeCallback: (() => void) | null = null;

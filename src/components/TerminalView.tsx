@@ -1,6 +1,6 @@
 import type { Project, Story, StoryStatus } from "../types";
 import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
-import { getAllowedTargets } from "../lib/transitions";
+
 
 interface TerminalViewProps {
   stories: Story[];
