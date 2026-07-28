@@ -1,8 +1,6 @@
-import type { Story, ResolvedBlocker, ResolvedDependency } from "../types";
+import type { Story, StoryStatus, ResolvedBlocker, ResolvedDependency } from "../types";
 import { COLUMN_LABELS, PRIORITY_LABELS } from "../types";
 import { getAllowedTargets } from "../lib/transitions";
-import type { BacklogAdapter } from "../lib/adapter";
-import { useTransition } from "../hooks/useTransition";
 
 interface StoryDetailProps {
   story: Story;
@@ -11,8 +9,11 @@ interface StoryDetailProps {
   isAuthenticated: boolean;
   onClose: () => void;
   onSignIn: () => void;
-  adapter: Pick<BacklogAdapter, "updateStoryStatus">;
-  onRefresh?: () => Promise<void>;
+  onOptimisticTransition: (
+    storyId: number,
+    currentStatus: StoryStatus,
+    newStatus: StoryStatus,
+  ) => Promise<void>;
 }
 
 export function StoryDetail({
@@ -22,10 +23,8 @@ export function StoryDetail({
   isAuthenticated,
   onClose,
   onSignIn,
-  adapter,
-  onRefresh,
+  onOptimisticTransition,
 }: StoryDetailProps) {
-  const { performTransition, error, clearError } = useTransition(adapter);
   const unresolvedBlockers = resolvedBlockers.filter((b) => !b.resolved_at);
   const blockingResolved = resolvedBlockers.filter((b) => b.resolved_at);
   const p = story.priority in PRIORITY_LABELS ? story.priority : 4;
@@ -221,45 +220,27 @@ export function StoryDetail({
             Transition
           </h3>
           {isAuthenticated ? (
-            <>
-              {error && (
-                <div className="px-3 py-2 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger">
-                  {error}
-                  <button
-                    type="button"
-                    onClick={clearError}
-                    className="ml-2 underline"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {getAllowedTargets(story.status).map((target) => (
-                  <button
-                    key={target}
-                    type="button"
-                    onClick={async () => {
-                      const result = await performTransition(
-                        story.id,
-                        story.status,
-                        target,
-                      );
-                      if (result.success) {
-                        await onRefresh?.();
-                        onClose();
-                      }
-                    }}
-                    className="px-4 py-2 text-sm font-medium rounded-lg
-                               bg-surface-raised border border-border-subtle text-text-primary
-                               hover:bg-surface-hover active:scale-95
-                               transition-all duration-100"
-                  >
-                    {COLUMN_LABELS[target]}
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className="flex flex-wrap gap-2">
+              {getAllowedTargets(story.status).map((target) => (
+                <button
+                  key={target}
+                  type="button"
+                  onClick={() =>
+                    onOptimisticTransition(
+                      story.id,
+                      story.status,
+                      target,
+                    )
+                  }
+                  className="px-4 py-2 text-sm font-medium rounded-lg
+                             bg-surface-raised border border-border-subtle text-text-primary
+                             hover:bg-surface-hover active:scale-95
+                             transition-all duration-100"
+                >
+                  {COLUMN_LABELS[target]}
+                </button>
+              ))}
+            </div>
           ) : (
             <button
               type="button"

@@ -27,6 +27,9 @@ const mocks = vi.hoisted(() => {
   // Override for fetchAll (loading test, error test)
   let fetchAllOverride: (() => Promise<{ data: AppData | null; error: string | null }>) | null = null;
 
+  // Override for updateStoryStatus (failure test for BLF-023)
+  let updateStatusOverride: ((storyId: number, status: string) => { error?: string } | Promise<{ error?: string }>) | null = null;
+
   // Realtime subscription callback (BLF-015)
   let dataChangeCallback: (() => void) | null = null;
 
@@ -35,6 +38,8 @@ const mocks = vi.hoisted(() => {
     store,
     get fetchAllOverride() { return fetchAllOverride; },
     set fetchAllOverride(v: typeof fetchAllOverride) { fetchAllOverride = v; },
+    get updateStatusOverride() { return updateStatusOverride; },
+    set updateStatusOverride(v: typeof updateStatusOverride) { updateStatusOverride = v; },
     get dataChangeCallback() { return dataChangeCallback; },
     set dataChangeCallback(v: typeof dataChangeCallback) { dataChangeCallback = v; },
     triggerDataChange() {
@@ -69,6 +74,9 @@ vi.mock("./adapters/supabase-adapter", () => ({
       return { data: mocks.store.data, error: null };
     },
     updateStoryStatus: async (storyId: number, status: string) => {
+      if (mocks.updateStatusOverride) {
+        return mocks.updateStatusOverride(storyId, status);
+      }
       if (!mocks.store.data) return { error: "No data loaded" };
       const story = mocks.store.data.stories.find((s) => s.id === storyId);
       if (!story) return { error: "Story not found" };
@@ -100,6 +108,7 @@ function resetStore() {
     dependencies: mockDependencies.map((d) => ({ ...d })),
   };
   mocks.fetchAllOverride = null;
+  mocks.updateStatusOverride = null;
   mocks.dataChangeCallback = null;
 }
 
@@ -2071,6 +2080,261 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
         expect(screen.getByText("Transition")).toBeInTheDocument();
         expect(screen.queryByLabelText("Sign in to edit")).not.toBeInTheDocument();
         expect(screen.queryByText("Sign in to edit")).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("BLF-023: Optimistic UI update on status transition", () => {
+    it("card moves to target column immediately when transition is tapped", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Open detail overlay for CIQ-002
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+      });
+
+      // Click "Ready" transition for CIQ-002 (currently in backlog)
+      const readyButton = screen.getByText("Ready");
+      await userEvent.click(readyButton);
+
+      // Overlay should close immediately (optimistic update, no waiting for server)
+      await waitFor(() => {
+        expect(screen.queryByText("Transition")).not.toBeInTheDocument();
+      });
+
+      // CIQ-002 should no longer be in the Backlog column
+      await waitFor(() => {
+        expect(screen.queryByText("CIQ-002")).not.toBeInTheDocument();
+      });
+
+      // Navigate to Ready column - CIQ-002 should be there (optimistic)
+      await userEvent.click(screen.getByLabelText("Ready"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Verify the story status was updated in the store (server confirmed)
+      const updatedStory = mocks.store.data!.stories.find((s) => s.id === 2);
+      expect(updatedStory!.status).toBe("ready");
+    });
+
+    it("card returns to original column when update fails", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      // Use a deferred promise so we can control when the server responds
+      let rejectUpdate: (value: { error: string }) => void;
+      mocks.updateStatusOverride = () =>
+        new Promise<{ error: string }>((resolve) => {
+          rejectUpdate = resolve;
+        });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Open detail overlay
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+      });
+
+      // Click "Ready" transition
+      const readyButton = screen.getByText("Ready");
+      await userEvent.click(readyButton);
+
+      // Overlay closes immediately (optimistic update applied)
+      await waitFor(() => {
+        expect(screen.queryByText("Transition")).not.toBeInTheDocument();
+      });
+
+      // Card moves optimistically - CIQ-002 disappears from Backlog
+      await waitFor(() => {
+        expect(screen.queryByText("CIQ-002")).not.toBeInTheDocument();
+      });
+
+      // Navigate to Ready - CIQ-002 is there optimistically
+      await userEvent.click(screen.getByLabelText("Ready"));
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Now let the server fail
+      await act(async () => {
+        rejectUpdate!({ error: "Network error" });
+      });
+
+      // After revert, the story should disappear from Ready
+      await waitFor(() => {
+        expect(screen.queryByText("CIQ-002")).not.toBeInTheDocument();
+      });
+
+      // Navigate back to Backlog - CIQ-002 should be back
+      await userEvent.click(screen.getByLabelText("Backlog"));
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Server store should still show "backlog" (update failed)
+      const story = mocks.store.data!.stories.find((s) => s.id === 2);
+      expect(story!.status).toBe("backlog");
+
+      // Error banner should appear
+      await waitFor(() => {
+        expect(screen.getByText("Network error")).toBeInTheDocument();
+      });
+    });
+
+    it("no double-move when realtime refetch confirms the optimistic update", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Open detail overlay
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+      });
+
+      // Click "Ready" transition
+      const readyButton = screen.getByText("Ready");
+      await userEvent.click(readyButton);
+
+      // Overlay closes immediately
+      await waitFor(() => {
+        expect(screen.queryByText("Transition")).not.toBeInTheDocument();
+      });
+
+      // Card moved to Ready column optimistically
+      expect(screen.queryByText("CIQ-002")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText("Ready"));
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Simulate realtime event (server confirms the update)
+      // triggerDataChange snapshots the store, which already has status: "ready"
+      mocks.triggerDataChange();
+
+      // Card should remain in Ready column after refetch
+      // No flicker: CIQ-002 should still be in Ready
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // And should not be in Backlog
+      await userEvent.click(screen.getByLabelText("Backlog"));
+      await waitFor(() => {
+        expect(screen.queryByText("CIQ-002")).not.toBeInTheDocument();
+      });
+    });
+
+    it("optimistic update works across all valid transitions from backlog", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+        expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+      });
+
+      // Open CIQ-003 (backlog, priority 3)
+      await userEvent.click(screen.getByText("CIQ-003"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+      });
+
+      // From backlog, valid transitions: Ready, Cancelled
+      expect(screen.getByText("Ready")).toBeInTheDocument();
+      expect(screen.getByText("Cancelled")).toBeInTheDocument();
+
+      // Transition CIQ-003 to Ready
+      await userEvent.click(screen.getByText("Ready"));
+
+      // Overlay closes immediately
+      await waitFor(() => {
+        expect(screen.queryByText("Transition")).not.toBeInTheDocument();
+      });
+
+      // CIQ-003 is now in Ready column
+      await userEvent.click(screen.getByLabelText("Ready"));
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-003")).toBeInTheDocument();
+      });
+
+      // Verify store was updated
+      const story = mocks.store.data!.stories.find((s) => s.id === 3);
+      expect(story!.status).toBe("ready");
+    });
+
+    it("dismiss button clears transition error banner", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      // Override updateStoryStatus to fail
+      mocks.updateStatusOverride = async () => ({ error: "Database error" });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("CIQ-002"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Transition")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Ready"));
+
+      // Error banner should appear
+      await waitFor(() => {
+        expect(screen.getByText("Database error")).toBeInTheDocument();
+      });
+
+      // Click Dismiss
+      await userEvent.click(screen.getByText("Dismiss"));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Database error")).not.toBeInTheDocument();
       });
     });
   });
