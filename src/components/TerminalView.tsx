@@ -1,13 +1,12 @@
 import type { Project, Story, StoryStatus } from "../types";
 import { TERMINAL_STATUSES, COLUMN_LABELS } from "../types";
+import type { BacklogAdapter } from "../lib/adapter";
+import { useTransition } from "../hooks/useTransition";
 
 interface TerminalViewProps {
   stories: Story[];
   projects: Project[];
-  onReactivate: (
-    storyId: number,
-    currentStatus: StoryStatus,
-  ) => void;
+  adapter: Pick<BacklogAdapter, "updateStoryStatus">;
   isAuthenticated: boolean;
   onClose: () => void;
 }
@@ -15,10 +14,11 @@ interface TerminalViewProps {
 export function TerminalView({
   stories,
   projects,
-  onReactivate,
+  adapter,
   isAuthenticated,
   onClose,
 }: TerminalViewProps) {
+  const { performTransition } = useTransition(adapter);
   const terminalStories = stories.filter((s) =>
     TERMINAL_STATUSES.includes(s.status as StoryStatus),
   );
@@ -63,9 +63,16 @@ export function TerminalView({
       {isAuthenticated && (
         <button
           type="button"
-          onClick={() =>
-            onReactivate(story.id, story.status as StoryStatus)
-          }
+          onClick={async () => {
+            const result = await performTransition(
+              story.id,
+              story.status as StoryStatus,
+              "backlog",
+            );
+            if (result.success) {
+              onClose();
+            }
+          }}
           className="w-full mt-2 px-4 py-2 text-sm font-medium rounded-lg
                      bg-accent/15 text-accent border border-accent/30
                      hover:bg-accent/20 active:scale-[0.98]
