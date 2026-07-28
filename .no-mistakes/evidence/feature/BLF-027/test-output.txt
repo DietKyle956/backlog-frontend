@@ -1,0 +1,110 @@
+
+ RUN  v3.2.7 /home/dietkyle/.no-mistakes/worktrees/0859e536355f/01KYMAAE90T0WBG8AR84KKGQEJ
+
+(node:3775664) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3775663) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3775671) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3775662) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for backlog status 1ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for ready status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for in_progress status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for in_review status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for done status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for cancelled status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns correct targets for failed status 0ms
+ ✓ src/lib/transitions.test.ts > getAllowedTargets > returns empty array for unknown status 0ms
+ ✓ src/lib/transitions.test.ts > createTransitionRunner > calls adapter with correct arguments on valid transition 1ms
+ ✓ src/lib/transitions.test.ts > createTransitionRunner > returns error for invalid transition 0ms
+ ✓ src/lib/transitions.test.ts > createTransitionRunner > returns error from adapter 0ms
+ ✓ src/lib/transitions.test.ts > createTransitionRunner > guards against concurrent transitions 0ms
+ ✓ src/lib/transitions.test.ts > createTransitionRunner > allows transitions after a failed one completes 0ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > fetchAll returns the provided data 1ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > fetchAll returns empty data when no initial data provided 0ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > updateStoryStatus updates the story status 1ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > updateStoryStatus returns error for non-existent story 0ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > onDataChange returns an unsubscribe function 0ms
+ ✓ src/lib/data.test.ts > BacklogAdapter contract (memory adapter) > adapter swap: two adapters with different data behave independently 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > groups stories into correct status columns 2ms
+ ✓ src/lib/columns.test.ts > computeColumns > returns all 5 columns even when no stories match 1ms
+ ✓ src/lib/columns.test.ts > computeColumns > filters by title (case-insensitive substring) 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > filters by key (case-insensitive substring) 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > priority filter includes only selected priorities 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > empty priority filter shows all stories 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > sorts by priority ascending (highest first), then oldest first 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > excludes terminal status stories (cancelled, failed) 0ms
+ ✓ src/lib/columns.test.ts > computeColumns > empty stories array returns columns with empty story arrays 0ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > shows loading skeleton while fetching data 22ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > renders the Backlog column by default on first visit 42ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > displays story cards in the Backlog column 16ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > stories are sorted by priority then creation date 13ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > shows story count for current column 13ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > shows empty state when column has no stories 44ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > shows blocked indicator on stories with unresolved blockers 9ms
+ ✓ src/App.test.tsx > BLF-002: Board loads with Backlog column > shows dependency count on stories with dependencies 10ms
+ ✓ src/App.test.tsx > BLF-002: Project persistence via localStorage > restores the last viewed project from localStorage 11ms
+ ✓ src/App.test.tsx > BLF-002: Project persistence via localStorage > defaults to first project alphabetically when no saved project 8ms
+ ✓ src/App.test.tsx > BLF-002: Project persistence via localStorage > saves the selected project to localStorage when switching 32ms
+ ✓ src/App.test.tsx > BLF-002: Project persistence via localStorage > shows only the selected project's stories 7ms
+ ✓ src/App.test.tsx > BLF-002: No login required to view the board > renders the board without authentication 8ms
+ ✓ src/App.test.tsx > BLF-002: No login required to view the board > shows 'Sign in to edit' in detail overlay when not authenticated 32ms
+ ✓ src/App.test.tsx > BLF-002: Error and empty states > shows error message when data fetch fails 4ms
+ ✓ src/App.test.tsx > BLF-002: Error and empty states > shows empty state when no projects exist 4ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > swipe left advances to next column 11ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > swipe right goes to previous column 14ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > column title updates when swiping to a new column 14ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > does not navigate on small swipes below threshold 10ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > cannot swipe past the last column 21ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > cannot swipe before the first column 9ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > applies spring animation class on swipe left 9ms
+ ✓ src/App.test.tsx > BLF-003: Swipe navigation between columns > applies spring animation class on swipe right 15ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > renders all five dot indicators for the five active columns 8ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > active dot is dash-shaped (w-6 h-1.5) with accent color 7ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > inactive dots are uniform dash shapes (w-6 h-1) with muted color 7ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > all five indicators use rounded-full for pill/dash shape 10ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > clicking a dot navigates to its column and updates active indicator 17ms
+ ✓ src/App.test.tsx > BLF-004: Dot indicators show dash-style column position > active dot is thicker than inactive dots (h-1.5 vs h-1) 6ms
+ ✓ src/App.test.tsx > BLF-008: Story detail overlay slides in from right > renders overlay with slide-in-right animation class 20ms
+ ✓ src/App.test.tsx > BLF-008: Story detail overlay slides in from right > close button dismisses the overlay 30ms
+ ✓ src/App.test.tsx > BLF-008: Story detail overlay slides in from right > overlay is full-screen 21ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > shows description with proper whitespace rendering 20ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > shows acceptance criteria as numbered checklist 20ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > shows dependencies with status pills 21ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > shows unresolved blockers with red warning card and 'Blocked' label 23ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > shows resolved blockers muted with line-through, green 'Resolved', opacity-60 23ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > StoryCard lock icon does NOT show when all blockers are resolved 7ms
+ ✓ src/App.test.tsx > BLF-009: Story detail overlay content sections > blocking story reference shows story key from in-memory allStories 18ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > opens Terminal view when Terminal button is clicked 18ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > shows all terminal stories across all projects regardless of selected project 17ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > shows project name on each terminal story 18ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > groups terminal stories by status with section headers 19ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > each terminal story shows key, title, and status badge 19ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > shows empty state when no terminal stories exist 17ms
+ ✓ src/App.test.tsx > BLF-012: Terminal view shows cancelled and failed across all projects > closes Terminal view and returns to board 29ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > renders all four priority filter chips with labels 9ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > all chips appear active (filled) when no filter is set 7ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > clicking a priority chip activates only that filter and sets aria-pressed 17ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > multiple priority chips can be selected simultaneously 26ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > filters stories to only those matching the selected priority 18ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > clicking the last active chip returns to show-all state 29ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > shows empty column state when no stories match the selected priority 16ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > priority filter persists when switching columns 26ms
+ ✓ src/App.test.tsx > BLF-014: Filter stories by priority level > inactive chip has outlined border style and muted text 16ms
+ ✓ src/App.test.tsx > BLF-013: Search clear button > clear button is not visible when search term is empty 6ms
+ ✓ src/App.test.tsx > BLF-013: Search clear button > clear button appears when user types in search input 27ms
+ ✓ src/App.test.tsx > BLF-013: Search clear button > clicking clear button resets search term and hides the button 38ms
+ ✓ src/App.test.tsx > BLF-013: Search clear button > clear button is visible when search term is non-empty on initial render 40ms
+ ✓ src/App.test.tsx > BLF-015: Real-time board updates > registers onDataChange subscription on mount 6ms
+ ✓ src/App.test.tsx > BLF-015: Real-time board updates > deleted stories disappear without manual refresh when realtime event fires 11ms
+ ✓ src/App.test.tsx > BLF-015: Real-time board updates > new stories appear without manual refresh when realtime event fires 11ms
+ ✓ src/App.test.tsx > BLF-015: Real-time board updates > cards move between columns when status changes via realtime 21ms
+ ✓ src/App.test.tsx > BLF-015: Real-time board updates > blocker changes propagate via realtime 8ms
+
+ Test Files  4 passed (4)
+      Tests  93 passed (93)
+   Start at  08:16:34
+   Duration  1.90s (transform 236ms, setup 155ms, collect 420ms, tests 1.12s, environment 1.05s, prepare 319ms)
+

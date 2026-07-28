@@ -93,7 +93,7 @@ export function App() {
     setIsAuthenticated(false);
   }, []);
 
-  // Transition runner uses the data adapter (which satisfies TransitionAdapter)
+  // Transition runner uses the data adapter (which satisfies Pick<BacklogAdapter, 'updateStoryStatus'>)
   const transitionRunner = useMemo(
     () => createTransitionRunner(adapter),
     [adapter],

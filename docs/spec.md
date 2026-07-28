@@ -73,7 +73,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 - Subscribe to Supabase Realtime channel for `stories`, `projects`, `blockers`, and `dependencies` table changes
 - On any change event, refetch all data (simple and correct; the dataset is small)
 - Pull-to-refresh triggers a manual refetch
-- Status transitions validate the target against the allowed-transition map and guard against concurrent transitions, then delegate the status update to the `BoardDataAdapter.updateStoryStatus` interface (implemented by the Supabase adapter with the authenticated session)
+- Status transitions validate the target against the allowed-transition map and guard against concurrent transitions, then delegate the status update to the `BacklogAdapter.updateStoryStatus` interface (implemented by the Supabase adapter with the authenticated session)
 
 ### Auth model
 - Supabase anon key embedded in the client bundle for public reads
@@ -121,7 +121,7 @@ failed → backlog, cancelled
 
 ### What makes a good test
 - Test external behavior, not implementation details. A test should verify what the user sees and can do, not how components manage internal state.
-- Prefer integration tests over unit tests. Mock at the highest seam possible (the `BoardDataAdapter` factory).
+- Prefer integration tests over unit tests. Mock at the highest seam possible (the `BacklogAdapter` factory).
 - Test empty states, loading states, and error states explicitly — these are the most common failure modes in data-driven UIs.
 
 ### Seams
