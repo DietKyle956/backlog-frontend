@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   getAllowedTargets,
   createTransitionRunner,
-  type TransitionAdapter,
 } from "./transitions";
+import type { BacklogAdapter } from "./adapter";
 import type { StoryStatus } from "../types";
 
 describe("getAllowedTargets", () => {
@@ -55,7 +55,7 @@ describe("getAllowedTargets", () => {
 describe("createTransitionRunner", () => {
   function createStubAdapter(
     behavior?: "success" | "error",
-  ): TransitionAdapter {
+  ): Pick<BacklogAdapter, 'updateStoryStatus'> {
     return {
       updateStoryStatus: async (_storyId, _status) => {
         if (behavior === "error") {
@@ -67,7 +67,7 @@ describe("createTransitionRunner", () => {
   }
 
   function createSpyAdapter(): {
-    adapter: TransitionAdapter;
+    adapter: Pick<BacklogAdapter, 'updateStoryStatus'>;
     calls: Array<{ storyId: number; status: StoryStatus }>;
   } {
     const calls: Array<{ storyId: number; status: StoryStatus }> = [];
@@ -121,7 +121,7 @@ describe("createTransitionRunner", () => {
       resolveFirst = resolve;
     });
 
-    const adapter: TransitionAdapter = {
+    const adapter: Pick<BacklogAdapter, 'updateStoryStatus'> = {
       updateStoryStatus: async (_storyId, _status) => firstPromise,
     };
     const runner = createTransitionRunner(adapter);
@@ -147,7 +147,7 @@ describe("createTransitionRunner", () => {
 
   it("allows transitions after a failed one completes", async () => {
     let shouldFail = true;
-    const adapter: TransitionAdapter = {
+    const adapter: Pick<BacklogAdapter, 'updateStoryStatus'> = {
       updateStoryStatus: async (_storyId, _status) => {
         if (shouldFail) {
           shouldFail = false;

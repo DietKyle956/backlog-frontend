@@ -1,9 +1,9 @@
-import type { BoardDataAdapter } from "../lib/data";
+import type { BacklogAdapter } from "../lib/adapter";
 import type { AppData } from "../types";
 
 export function createMemoryAdapter(
   initialData?: AppData,
-): BoardDataAdapter {
+): BacklogAdapter {
   let data: AppData = initialData ?? {
     projects: [],
     stories: [],

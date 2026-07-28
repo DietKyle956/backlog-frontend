@@ -1,8 +1,8 @@
 import { supabase } from "../supabase";
-import type { BoardDataAdapter } from "../lib/data";
+import type { BacklogAdapter } from "../lib/adapter";
 import type { Project, Story, Blocker, Dependency } from "../types";
 
-export function createSupabaseAdapter(): BoardDataAdapter {
+export function createSupabaseAdapter(): BacklogAdapter {
   return {
     fetchAll: async () => {
       try {

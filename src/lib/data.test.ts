@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createMemoryAdapter } from "../adapters/memory-adapter";
-import type { BoardDataAdapter } from "./data";
+import type { BacklogAdapter } from "./adapter";
 import type { AppData } from "../types";
 
 const sampleData: AppData = {
@@ -48,11 +48,11 @@ const sampleData: AppData = {
   dependencies: [{ story_id: 1, depends_on_id: 2 }],
 };
 
-function createAdapter(data?: AppData): BoardDataAdapter {
+function createAdapter(data?: AppData): BacklogAdapter {
   return createMemoryAdapter(data);
 }
 
-describe("BoardDataAdapter contract (memory adapter)", () => {
+describe("BacklogAdapter contract (memory adapter)", () => {
   it("fetchAll returns the provided data", async () => {
     const adapter = createAdapter(sampleData);
     const result = await adapter.fetchAll();

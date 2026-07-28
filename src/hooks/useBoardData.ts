@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { BoardDataAdapter } from "../lib/data";
+import type { BacklogAdapter } from "../lib/adapter";
 import type { AppData } from "../types";
 
 interface BoardDataState {
@@ -9,7 +9,7 @@ interface BoardDataState {
   refetch: () => Promise<void>;
 }
 
-export function useBoardData(adapter: BoardDataAdapter): BoardDataState {
+export function useBoardData(adapter: BacklogAdapter): BoardDataState {
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

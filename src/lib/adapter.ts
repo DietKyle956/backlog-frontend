@@ -1,6 +1,6 @@
 import type { AppData, StoryStatus } from "../types";
 
-export interface BoardDataAdapter {
+export interface BacklogAdapter {
   fetchAll(): Promise<{ data: AppData | null; error: string | null }>;
   updateStoryStatus(
     storyId: number,
