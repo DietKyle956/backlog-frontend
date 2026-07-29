@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { StoryStatus } from "./types";
 import { supabase } from "./supabase";
 import { useBoardData } from "./hooks/useBoardData";
@@ -20,11 +20,17 @@ export function App() {
   const { performTransition, error: transitionError, clearError: clearTransitionError } = useTransition(adapter);
   const [showTerminal, setShowTerminal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Tracks whether sign-out was explicitly requested by the user,
+  // so we can distinguish deliberate sign-out from token expiry.
+  const signOutIntentRef = useRef(false);
 
   const { selectedProject, selectProject, filteredStories } =
     useProjectSelection(data);
 
-  // Check auth state
+  // Check auth state — restores session from localStorage on page load
+  // and listens for changes (sign in, sign out, token expiry, cross-tab).
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
@@ -32,6 +38,18 @@ export function App() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (_event === "SIGNED_OUT") {
+          if (signOutIntentRef.current) {
+            // Deliberate sign-out — reset the flag, no expiry message.
+            signOutIntentRef.current = false;
+          } else {
+            // Not user-initiated: token expired or session invalidated.
+            setSessionExpired(true);
+          }
+        }
+        if (session) {
+          setSessionExpired(false);
+        }
         setIsAuthenticated(!!session);
       },
     );
@@ -51,8 +69,17 @@ export function App() {
   }, []);
 
   const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
+    signOutIntentRef.current = true;
+    try {
+      const result = await supabase.auth.signOut();
+      if (result?.error) {
+        signOutIntentRef.current = false;
+        return;
+      }
+      setIsAuthenticated(false);
+    } catch {
+      signOutIntentRef.current = false;
+    }
   }, []);
 
   const handleTerminalOptimisticTransition = useCallback(
@@ -220,6 +247,42 @@ export function App() {
           onDismiss={clearTransitionError}
           onSignIn={handleSignIn}
         />
+      )}
+
+      {/* Session expired banner */}
+      {sessionExpired && (
+        <div
+          role="alert"
+          className="mx-4 mt-3 px-3 py-2.5 bg-accent-danger/15 border border-accent-danger/30 rounded-lg text-sm text-accent-danger"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm leading-snug">
+              Your session has expired. Please sign in again to make changes.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSessionExpired(false)}
+              className="ml-2 underline text-xs flex-shrink-0 hover:text-accent-danger/80 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="mt-2 pt-2 border-t border-accent-danger/20">
+            <button
+              type="button"
+              onClick={() => {
+                setSessionExpired(false);
+                handleSignIn();
+              }}
+              className="text-xs font-medium px-3 py-1 rounded-md
+                         bg-accent-danger/20 text-accent-danger
+                         hover:bg-accent-danger/30 active:scale-95
+                         transition-all duration-100"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Board or Terminal view */}
