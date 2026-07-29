@@ -8,7 +8,7 @@ function cleanDescription(raw: string): string {
     .replace(/^#{1,6}\s.*$/gm, "")
     // Strip bold (**text**) and italic (*text* or _text_)
     .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1")
-    .replace(/_{1,2}([^_]+)_{1,2}/g, "$1")
+    .replace(/\b_{1,2}([^_]+)_{1,2}\b/g, "$1")
     // Strip list markers at line start (- item, * item)
     .replace(/^[-*]\s/gm, "")
     // Strip inline code backticks
