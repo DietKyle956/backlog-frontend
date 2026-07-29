@@ -1,6 +1,26 @@
 import type { Story, Blocker } from "../types";
 import { PRIORITY_LABELS } from "../types";
 
+/** Strip markdown formatting so the card preview is clean, predictable plain text. */
+function cleanDescription(raw: string): string {
+  return raw
+    // Strip ATX headings (## ..., ### ..., etc.)
+    .replace(/^#{1,6}\s.*$/gm, "")
+    // Strip bold (**text**) and italic (*text* or _text_)
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1")
+    .replace(/\b_{1,2}([^_]+)_{1,2}\b/g, "$1")
+    // Strip list markers at line start (- item, * item)
+    .replace(/^[-*]\s/gm, "")
+    // Strip inline code backticks
+    .replace(/`([^`]+)`/g, "$1")
+    // Collapse 2+ newlines into a single space, then collapse 2+ spaces
+    .replace(/\n{2,}/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    // Normalize remaining newlines to spaces
+    .replace(/\n/g, " ")
+    .trim();
+}
+
 interface StoryCardProps {
   story: Story;
   blockers: Blocker[];
@@ -82,7 +102,7 @@ export function StoryCard({
         {/* Description preview */}
         {story.description && (
           <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
-            {story.description.replace(/^#+\s.*$/gm, "").trim()}
+            {cleanDescription(story.description)}
           </p>
         )}
       </div>
