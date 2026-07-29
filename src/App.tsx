@@ -47,6 +47,9 @@ export function App() {
             setSessionExpired(true);
           }
         }
+        if (session) {
+          setSessionExpired(false);
+        }
         setIsAuthenticated(!!session);
       },
     );
@@ -67,8 +70,16 @@ export function App() {
 
   const handleSignOut = useCallback(async () => {
     signOutIntentRef.current = true;
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
+    try {
+      const result = await supabase.auth.signOut();
+      if (result?.error) {
+        signOutIntentRef.current = false;
+        return;
+      }
+      setIsAuthenticated(false);
+    } catch {
+      signOutIntentRef.current = false;
+    }
   }, []);
 
   const handleTerminalOptimisticTransition = useCallback(
