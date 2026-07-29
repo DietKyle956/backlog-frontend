@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Scroll Fix - Before vs After</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0B0E14;
+    color: #E8ECF1;
+    overflow: hidden;
+  }
+
+  /* === BEFORE (broken) === */
+  #root-before {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* === AFTER (fixed) === */
+  #root-after {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-wrapper {
+    min-height: 100dvh;
+    background: #0B0E14;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .board-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .board-header {
+    padding: 16px;
+    border-bottom: 1px solid #2A3344;
+    flex-shrink: 0;
+  }
+
+  .board-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .board-header .story-count {
+    font-size: 13px;
+    color: #8896A6;
+    margin-top: 4px;
+  }
+
+  .column-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .board-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #2A3344;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .story-card {
+    background: #151A22;
+    border: 1px solid #2A3344;
+    border-radius: 10px;
+    padding: 14px;
+    flex-shrink: 0;
+    cursor: default;
+    transition: background 0.15s;
+  }
+
+  .story-card:hover { background: #1C2330; }
+
+  .story-card .key {
+    font-size: 11px;
+    font-weight: 600;
+    color: #60A5FA;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .story-card .title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .story-card .desc {
+    font-size: 12px;
+    color: #8896A6;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .story-card .priority {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .pri-1 { background: rgba(248,113,113,0.2); color: #F87171; }
+  .pri-2 { background: rgba(251,146,60,0.2); color: #FB923C; }
+  .pri-3 { background: rgba(251,191,36,0.2); color: #FBBF24; }
+  .pri-4 { background: rgba(156,163,175,0.2); color: #9CA3AF; }
+
+  .split-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .view-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .view-panel:first-child {
+    border-right: 2px solid #2A3344;
+  }
+
+  .view-label {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    pointer-events: none;
+  }
+
+  .label-broken {
+    background: rgba(248,113,113,0.2);
+    color: #F87171;
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+
+  .label-fixed {
+    background: rgba(52,211,153,0.2);
+    color: #34D399;
+    border: 1px solid rgba(52,211,153,0.3);
+  }
+
+  .nav-btn {
+    background: #1C2330;
+    border: 1px solid #2A3344;
+    color: #8896A6;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    font-size: 16px;
+  }
+
+  .status-badge {
+    font-size: 11px;
+    color: #556170;
+    margin-left: 8px;
+  }
+
+  /* Scrollbar styling */
+  .column-content::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .column-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .column-content::-webkit-scrollbar-thumb {
+    background: #2A3344;
+    border-radius: 10px;
+  }
+
+  .column-content::-webkit-scrollbar-thumb:hover {
+    background: #3A4354;
+  }
+
+  /* Scroll indicator arrow */
+  .scroll-hint {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 1.5s ease-in-out infinite;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(6px); }
+  }
+
+  .scroll-hint svg {
+    width: 24px;
+    height: 24px;
+    color: #8896A6;
+  }
+
+  .explanation {
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 16px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #8896A6;
+    flex-shrink: 0;
+  }
+
+  .explanation code {
+    background: rgba(255,255,255,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #60A5FA;
+  }
+
+  .explanation strong {
+    color: #E8ECF1;
+  }
+</style>
+</head>
+<body>
+<div class="split-view">
+  <!-- LEFT: BEFORE (broken with min-height) -->
+  <div class="view-panel">
+    <span class="view-label label-broken">Before: min-height</span>
+    <div id="root-before">
+      <div class="app-wrapper">
+        <div class="board-wrapper">
+          <div class="board-header">
+            <h2>Backlog <span class="status-badge">(broken)</span></h2>
+            <div class="story-count">25 stories</div>
+          </div>
+          <div class="explanation">
+            <strong>Problem:</strong> <code>#root</code> uses <code>min-height: 100dvh</code>.
+            When 25 story cards overflow, the root grows past the viewport instead of
+            constraining its height. The <code>overflow-y: auto</code> on the column
+            never activates because the flex parent stretches to fit all content.
+            <strong>The page scrolls; the column does not.</strong>
+          </div>
+          <div class="column-content" id="col-before">
+          </div>
+          <div class="board-footer">
+            <div class="nav-btn">←</div>
+            <div class="nav-btn">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-hint" id="hint-before">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 5v14M5 12l7-7 7 7"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- RIGHT: AFTER (fixed with height) -->
+  <div class="view-panel">
+    <span class="view-label label-fixed">After: height</span>
+    <div id="root-after">
+      <div class="app-wrapper">
+        <div class="board-wrapper">
+          <div class="board-header">
+            <h2>Backlog <span class="status-badge">(fixed)</span></h2>
+            <div class="story-count">25 stories</div>
+          </div>
+          <div class="explanation">
+            <strong>Fix:</strong> <code>#root</code> now uses <code>height: 100dvh</code>.
+            The root is strictly constrained to the viewport. The flex chain
+            (<code>flex: 1 → min-height: 0 → flex: 1, overflow-y: auto</code>)
+            correctly bounds the column, so <strong>only the story list scrolls</strong>
+            while the header and nav remain fixed.
+          </div>
+          <div class="column-content" id="col-after">
+          </div>
+          <div class="board-footer">
+            <div class="nav-btn">←</div>
+            <div class="nav-btn">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-hint" id="hint-after">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 5v14M5 12l7-7 7 7"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+  const priorities = ['P1', 'P2', 'P3', 'P4'];
+  const priClass = ['pri-1', 'pri-2', 'pri-3', 'pri-4'];
+
+  function makeCard(i) {
+    const p = i % 4;
+    return `
+      <div class="story-card">
+        <div class="key">TST-${String(i + 1).padStart(3, '0')}</div>
+        <div class="title">Story card number ${i + 1} with enough text to fill space</div>
+        <div class="desc">Description for test story ${i + 1} showing how cards stack vertically in the backlog column.</div>
+        <span class="priority ${priClass[p]}">${priorities[p]}</span>
+      </div>
+    `;
+  }
+
+  let cards = '';
+  for (let i = 0; i < 25; i++) {
+    cards += makeCard(i);
+  }
+
+  document.getElementById('col-before').innerHTML = cards;
+  document.getElementById('col-after').innerHTML = cards;
+
+  // Hide scroll hints once user scrolls
+  const colAfter = document.getElementById('col-after');
+  const colBefore = document.getElementById('col-before');
+  const hintAfter = document.getElementById('hint-after');
+  const hintBefore = document.getElementById('hint-before');
+
+  colAfter.addEventListener('scroll', () => {
+    if (colAfter.scrollTop > 20) hintAfter.style.display = 'none';
+  });
+  colBefore.addEventListener('scroll', () => {
+    if (colBefore.scrollTop > 20) hintBefore.style.display = 'none';
+  });
+</script>
+</body>
+</html>
