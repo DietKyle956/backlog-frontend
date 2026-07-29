@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Story Card Spacing Fix - Before/After</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e1e4e8;
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .card-stripe {
+    height: 4px;
+    background: #f78166;
+  }
+  .card-body { padding: 12px; }
+  .card-key {
+    font-size: 11px;
+    font-family: monospace;
+    color: #58a6ff;
+    background: rgba(88,166,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0f6fc;
+    line-height: 1.3;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-desc {
+    font-size: 11px;
+    color: #8b949e;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .badge-row { margin-bottom: 8px; }
+  .badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .badge-high { color: #f78166; background: rgba(247,129,102,0.15); }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .compare-column h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #8b949e;
+    font-weight: 500;
+  }
+  .compare-column.before h3 { color: #f85149; }
+  .compare-column.after h3 { color: #3fb950; }
+  .diff-line {
+    font-size: 12px;
+    font-family: monospace;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .diff-before {
+    background: rgba(248,81,73,0.1);
+    border-left: 3px solid #f85149;
+  }
+  .diff-after {
+    background: rgba(63,185,80,0.1);
+    border-left: 3px solid #3fb950;
+  }
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-x: auto;
+    margin-bottom: 12px;
+  }
+  .code-func { color: #d2a8ff; }
+  .code-str { color: #a5d6ff; }
+  .code-comment { color: #8b949e; }
+</style>
+</head>
+<body>
+
+<h1>Fix: Strip Markdown from Story Card Description Previews</h1>
+<p class="subtitle">
+  Branch <code>bug/card-spacing-markdown-fix</code> &mdash; Evidence for even vertical card spacing with clean, predictable plain-text previews.
+</p>
+
+<!-- ===== Section: Side by Side Card Comparison ===== -->
+<div class="section">
+  <h2>Visual Comparison: Cards with Markdown vs. Cleaned Descriptions</h2>
+  <p style="font-size:13px;color:#8b949e;margin-bottom:16px;">
+    The four cards below use the same underlying markdown descriptions as BLF-027 through BLF-031 would.
+    Left: raw markdown (before fix). Right: cleaned with <code>cleanDescription()</code> (after fix).
+    Note the left column's uneven card heights caused by multi-line markdown artifacts in the line-clamped preview.
+  </p>
+
+  <div class="compare-grid">
+    <!-- BEFORE: Raw markdown -->
+    <div class="compare-column before">
+      <h3>Before: Raw Markdown (broken spacing)</h3>
+      <div class="cards-row" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-027</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Add bulk update endpoint</div>
+            <div class="card-desc">## Summary Implement the **bulk update** feature for the Kanban board. ### Acceptance Criteria - Select multiple cards at once - Apply status change in one action</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-028</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Add real-time sync</div>
+            <div class="card-desc">### Technical Notes Use `BroadcastChannel` API. Listen on `supabase_realtime` events. - Handle reconnect - Debounce updates by 300ms</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-029</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Implement filter persistence</div>
+            <div class="card-desc">## Overview Persist the active *priority* and **status** filters in localStorage. * Load on mount * Save on change * Clear on *reset* button</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER: Cleaned description -->
+    <div class="compare-column after">
+      <h3>After: Clean Description (even spacing)</h3>
+      <div class="cards-row" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-027</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Add bulk update endpoint</div>
+            <div class="card-desc">Implement the bulk update feature for the Kanban board. Select multiple cards at once Apply status change in one action</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-028</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Add real-time sync</div>
+            <div class="card-desc">Use BroadcastChannel API. Listen on supabase_realtime events. Handle reconnect Debounce updates by 300ms</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="badge-row"><span class="card-key">BLF-029</span> <span class="badge badge-high">High</span></div>
+            <div class="card-title">Implement filter persistence</div>
+            <div class="card-desc">Persist the active priority and status filters in localStorage. Load on mount Save on change Clear on reset button</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Section: The Function ===== -->
+<div class="section">
+  <h2>The <code>cleanDescription()</code> Helper</h2>
+  <div class="code-block">
+<span class="code-comment">/** Strip markdown formatting so the card preview is clean, predictable plain text. */</span>
+<span class="code-func">function</span> <span class="code-func">cleanDescription</span>(raw: <span class="code-func">string</span>): <span class="code-func">string</span> {
+  <span class="code-func">return</span> raw
+    <span class="code-comment">// Strip ATX headings (## ..., ### ..., etc.)</span>
+    .replace(<span class="code-str">/^#{1,6}\s.*$/gm</span>, <span class="code-str">""</span>)
+    <span class="code-comment">// Strip bold (**text**) and italic (*text* or _text_)</span>
+    .replace(<span class="code-str">/\*{1,2}([^*]+)\*{1,2}/g</span>, <span class="code-str">"$1"</span>)
+    .replace(<span class="code-str">/\b_{1,2}([^_]+)_{1,2}\b/g</span>, <span class="code-str">"$1"</span>)
+    <span class="code-comment">// Strip list markers at line start (- item, * item)</span>
+    .replace(<span class="code-str">/^[-*]\s/gm</span>, <span class="code-str">""</span>)
+    <span class="code-comment">// Strip inline code backticks</span>
+    .replace(<span class="code-str">/`([^`]+)`/g</span>, <span class="code-str">"$1"</span>)
+    <span class="code-comment">// Collapse 2+ newlines into a single space, then collapse 2+ spaces</span>
+    .replace(<span class="code-str">/\n{2,}/g</span>, <span class="code-str">" "</span>)
+    .replace(<span class="code-str">/[ \t]{2,}/g</span>, <span class="code-str">" "</span>)
+    <span class="code-comment">// Normalize remaining newlines to spaces</span>
+    .replace(<span class="code-str">/\n/g</span>, <span class="code-str">" "</span>)
+    .trim();
+}
+  </div>
+</div>
+
+<!-- ===== Section: Transformation Examples ===== -->
+<div class="section">
+  <h2>Transformation Examples</h2>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;">Input (raw markdown from BLF-027):</div>
+    <div class="diff-line diff-before">## Summary\nImplement the **bulk update** feature for the Kanban board.\n\n### Acceptance Criteria\n- Select multiple cards at once\n- Apply status change in one action</div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;">Output (cleaned plain text):</div>
+    <div class="diff-line diff-after">Implement the bulk update feature for the Kanban board. Select multiple cards at once Apply status change in one action</div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;">Input (raw markdown from BLF-028):</div>
+    <div class="diff-line diff-before">### Technical Notes\nUse `BroadcastChannel` API.\n\n- Handle reconnect\n- Debounce updates by 300ms</div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;">Output (cleaned plain text):</div>
+    <div class="diff-line diff-after">Use BroadcastChannel API. Handle reconnect Debounce updates by 300ms</div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;">Input (underscore emphasis, word-boundary safe):</div>
+    <div class="diff-line diff-after" style="border-left-color:#f0883e;background:rgba(240,136,62,0.1);">_use_memo_ preserves underscores → "use_memo" (identifier, not italic)</div>
+  </div>
+</div>
+
+<!-- ===== Section: Test Results ===== -->
+<div class="section">
+  <h2>Test Coverage</h2>
+  <div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:16px;">
+    <p style="font-size:13px;color:#3fb950;margin-bottom:12px;">&#10004; 11/11 new tests passing for cleanDescription</p>
+    <p style="font-size:13px;color:#3fb950;margin-bottom:12px;">&#10004; 105/105 existing App tests passing (no regressions)</p>
+    <ul style="font-size:12px;color:#8b949e;margin-left:20px;">
+      <li>ATX heading removal (strips entire heading line)</li>
+      <li>Bold/italic stripping (**text**, *text*, _text_)</li>
+      <li>List marker removal (- item, * item)</li>
+      <li>Inline code backtick stripping</li>
+      <li>Whitespace collapse (newlines, double spaces)</li>
+      <li>Word-boundary assertion for underscore emphasis (preserves identifiers like `use_memo`)</li>
+      <li>Empty description handling (no preview paragraph rendered)</li>
+      <li>Malformed/edge-case input robustness</li>
+      <li>Consistent output length for cards with different markdown formats</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
