@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, act, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import {
@@ -2008,7 +2008,10 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Sign In")).toBeInTheDocument();
+      // Header shows Sign In (unauthenticated). The session-expired banner
+      // also appears since this SIGNED_OUT was not user-initiated, so
+      // getAllByText is used to tolerate both elements.
+      expect(screen.getAllByText("Sign In").length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText("Sign Out")).not.toBeInTheDocument();
     });
   });
@@ -2495,6 +2498,292 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
       await waitFor(() => {
         expect(screen.queryByText("Database error")).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe("BLF-026: Authentication session persists across page visits via localStorage", () => {
+    it("restores session from getSession on page load", async () => {
+      // Simulate an existing session stored in localStorage (via Supabase SDK)
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "returning-user" } } },
+      });
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      // User should be authenticated from the persisted session
+      expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      expect(screen.queryByText("Sign In")).not.toBeInTheDocument();
+
+      // getSession must have been called to restore the session
+      expect(mocks.mockAuth.getSession).toHaveBeenCalled();
+    });
+
+    it("remains unauthenticated when no session is stored", async () => {
+      // No session stored (default mock returns null session)
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Backlog")).toBeInTheDocument();
+      });
+
+      // User should be unauthenticated
+      expect(screen.getByText("Sign In")).toBeInTheDocument();
+      expect(screen.queryByText("Sign Out")).not.toBeInTheDocument();
+    });
+
+    it("shows session-expired banner when SIGNED_OUT fires without user intent", async () => {
+      // Start authenticated
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // Simulate session expiry: SDK fires SIGNED_OUT after token refresh fails
+      expect(capturedCallback).not.toBeNull();
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Your session has expired/),
+        ).toBeInTheDocument();
+        // Header now shows Sign In since isAuthenticated is false.
+        // The session-expired banner also has a Sign In button, so use
+        // getAllByText to tolerate both elements.
+        expect(screen.getAllByText("Sign In").length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it("does NOT show session-expired banner on deliberate sign-out", async () => {
+      // Start authenticated
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      // Capture the callback so we can fire it after the user clicks sign out
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // User deliberately clicks Sign Out
+      await userEvent.click(screen.getByText("Sign Out"));
+      expect(mocks.mockAuth.signOut).toHaveBeenCalled();
+
+      // Now fire the SIGNED_OUT that the mock didn't fire
+      // (in reality Supabase fires this after signOut completes)
+      expect(capturedCallback).not.toBeNull();
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      // Expiry banner should NOT appear — user initiated this sign-out
+      expect(
+        screen.queryByText(/Your session has expired/),
+      ).not.toBeInTheDocument();
+    });
+
+    it("session-expired banner has dismiss button that hides the banner", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // Fire session expiry
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Your session has expired/),
+        ).toBeInTheDocument();
+      });
+
+      // Click Dismiss
+      await userEvent.click(screen.getByText("Dismiss"));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/Your session has expired/),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("session-expired banner Sign In button triggers GitHub OAuth", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // Fire session expiry
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Your session has expired/),
+        ).toBeInTheDocument();
+      });
+
+      // Click "Sign In" button inside the session-expired banner.
+      // Use within(alert) to get the banner's button, not the header's Sign In.
+      const alert = screen.getByRole("alert");
+      const signInButton = within(alert).getByText("Sign In");
+      expect(signInButton).toBeInTheDocument();
+      await userEvent.click(signInButton);
+
+      expect(mocks.mockAuth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "github",
+        options: {
+          redirectTo: window.location.origin + "/backlog-frontend/",
+        },
+      });
+    });
+
+    it("session-expired banner uses role='alert' for accessibility", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // Fire session expiry
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+      });
+    });
+
+    it("clears session-expired banner when signing in via header after expiry", async () => {
+      mocks.mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: { id: "test-user" } } },
+      });
+
+      let capturedCallback: ((event: string, session: unknown) => void) | null =
+        null;
+      mocks.mockAuth.onAuthStateChange.mockImplementation(
+        (cb: (event: string, session: unknown) => void) => {
+          capturedCallback = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      );
+
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Sign Out")).toBeInTheDocument();
+      });
+
+      // Fire session expiry
+      act(() => {
+        capturedCallback!("SIGNED_OUT", null);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Your session has expired/),
+        ).toBeInTheDocument();
+      });
+
+      // Click the main "Sign In" button in the header (not the banner one)
+      const signInButtons = screen.getAllByText("Sign In");
+      // The header button should be first
+      await userEvent.click(signInButtons[0]);
+
+      expect(mocks.mockAuth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "github",
+        options: {
+          redirectTo: window.location.origin + "/backlog-frontend/",
+        },
+      });
+
+      // Banner should still be visible (only Dismiss or successful re-auth clears it)
+      expect(
+        screen.getByText(/Your session has expired/),
+      ).toBeInTheDocument();
     });
   });
 });
