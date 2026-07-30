@@ -385,7 +385,7 @@ export function Board({
       <div
         ref={scrollRef}
         key={animationKey}
-        className={`flex-1 overflow-y-auto px-4 pb-4 space-y-3 ${
+        className={`flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-3 ${
           animationDir === "right"
             ? "animate-spring-in-right"
             : "animate-spring-in-left"

@@ -99,8 +99,8 @@ export function StoryCard({
           {story.title}
         </h3>
 
-        {/* Description preview */}
-        {story.description && (
+        {/* Description preview — only render when there is visible text after cleaning */}
+        {story.description && cleanDescription(story.description) && (
           <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
             {cleanDescription(story.description)}
           </p>

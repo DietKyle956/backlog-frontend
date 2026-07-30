@@ -114,7 +114,7 @@ export function App() {
             ))}
           </div>
         </header>
-        <div className="flex-1 px-4 space-y-3">
+        <div className="flex-1 px-4 flex flex-col gap-3">
           {[...Array(5)].map((_, i) => (
             <SkeletonCard key={i} />
           ))}
