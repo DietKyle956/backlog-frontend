@@ -49,7 +49,8 @@ export function StoryCard({
       className="w-full text-left bg-surface rounded-xl overflow-hidden
                  border border-border-subtle shadow-lg shadow-black/20
                  active:scale-[0.98] transition-transform duration-100
-                 focus:outline-none focus:ring-2 focus:ring-accent/50"
+                 focus:outline-none focus:ring-2 focus:ring-accent/50
+                 shrink-0"
     >
       {/* Priority stripe */}
       <div

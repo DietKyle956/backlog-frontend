@@ -6,7 +6,8 @@ export function SkeletonCard() {
   return (
     <div
       className="w-full bg-surface rounded-xl overflow-hidden
-                 border border-border-subtle shadow-lg shadow-black/20"
+                 border border-border-subtle shadow-lg shadow-black/20
+                 shrink-0"
       aria-hidden="true"
     >
       {/* Priority stripe placeholder */}
