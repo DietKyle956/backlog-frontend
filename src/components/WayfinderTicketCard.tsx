@@ -1,4 +1,4 @@
-import type { WayfinderTicket, WayfinderTicketDependency } from "../types";
+import type { WayfinderTicket } from "../types";
 
 export const TICKET_TYPE_LABELS: Record<string, string> = {
   research: "Research",
