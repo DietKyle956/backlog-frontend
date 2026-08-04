@@ -9,6 +9,9 @@ export function createMemoryAdapter(
     stories: [],
     blockers: [],
     dependencies: [],
+    wayfinderMaps: [],
+    wayfinderTickets: [],
+    wayfinderTicketDependencies: [],
   };
 
   return {

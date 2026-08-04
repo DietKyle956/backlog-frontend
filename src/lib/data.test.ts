@@ -5,7 +5,7 @@ import type { AppData } from "../types";
 
 const sampleData: AppData = {
   projects: [
-    { id: 1, name: "Test Project", slug: "TST", github_repo: null },
+    { id: 1, name: "Test Project", slug: "TST", github_repo: null, github_repo_id: null },
   ],
   stories: [
     {
@@ -19,7 +19,7 @@ const sampleData: AppData = {
       priority: 2,
       created_at: "2026-07-01T00:00:00Z",
       updated_at: "2026-07-01T00:00:00Z",
-      reviewed_by: null,
+      wayfinder_ticket_id: null,
     },
     {
       id: 2,
@@ -32,7 +32,7 @@ const sampleData: AppData = {
       priority: 1,
       created_at: "2026-07-02T00:00:00Z",
       updated_at: "2026-07-02T00:00:00Z",
-      reviewed_by: null,
+      wayfinder_ticket_id: null,
     },
   ],
   blockers: [
@@ -46,6 +46,9 @@ const sampleData: AppData = {
     },
   ],
   dependencies: [{ story_id: 1, depends_on_id: 2 }],
+  wayfinderMaps: [],
+  wayfinderTickets: [],
+  wayfinderTicketDependencies: [],
 };
 
 function createAdapter(data?: AppData): BacklogAdapter {
@@ -71,6 +74,9 @@ describe("BacklogAdapter contract (memory adapter)", () => {
       stories: [],
       blockers: [],
       dependencies: [],
+      wayfinderMaps: [],
+      wayfinderTickets: [],
+      wayfinderTicketDependencies: [],
     });
   });
 
@@ -107,7 +113,7 @@ describe("BacklogAdapter contract (memory adapter)", () => {
     const adapterB = createAdapter({
       ...sampleData,
       projects: [
-        { id: 2, name: "Other Project", slug: "OTH", github_repo: null },
+        { id: 2, name: "Other Project", slug: "OTH", github_repo: null, github_repo_id: null },
       ],
     });
 

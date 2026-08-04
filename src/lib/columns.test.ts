@@ -14,7 +14,7 @@ function makeStory(overrides: Partial<Story> = {}): Story {
     priority: 3,
     created_at: "2026-07-01T00:00:00Z",
     updated_at: "2026-07-01T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
     ...overrides,
   };
 }

@@ -83,6 +83,37 @@ In the detail overlay, unresolved Blockers display as red warning cards with a "
 
 Acceptance Criteria are human-readable conditions of satisfaction for a Story. They are stored as a list of strings and rendered as a numbered checklist in the Story detail view.
 
+## Wayfinder Map
+
+A Wayfinder Map is a structured design document for a Project. It has a title, a destination (the end state the map aims to reach), and metadata sections: notes, decisions so far, not yet specified, and out of scope. Each map belongs to exactly one Project. A Map has a status (active, completed, or archived). Maps are browsed via the Map Selector dropdown next to the Project switcher.
+
+## Wayfinder Ticket
+
+A Wayfinder Ticket is a unit of design work within a Wayfinder Map. Each Ticket has a title, a question (what the ticket aims to answer), a Ticket Type, a sort order, an optional resolution (filled when the ticket is closed), and a HITL flag. Tickets are displayed as cards in the Wayfinder Map View, sorted by their sort order.
+
+## Ticket Type
+
+A Ticket's type classifies the nature of the work. The four types, mapped to the existing priority color slots, are:
+
+| Type | Priority slot | Color |
+|---|---|---|
+| `research` | Critical (1) | Red |
+| `prototype` | High (2) | Orange |
+| `grilling` | Medium (3) | Yellow |
+| `scaffold` | Low (4) | Gray |
+
+## HITL
+
+Human-in-the-loop. A boolean flag on a Wayfinder Ticket indicating that the ticket requires human involvement. When true, a HITL badge (accent blue with a person icon) appears on the ticket card.
+
+## Wayfinder Ticket Dependency
+
+A directional dependency between two Wayfinder Tickets: one ticket depends on another. Displayed as a count badge (🔗N) on the ticket card. Resolution of dependency target details (ticket titles, statuses) is not yet implemented.
+
+## Wayfinder Map View
+
+The view shown when a Wayfinder Map is selected from the Map Selector. Displays the map's destination, collapsible metadata sections, and a scrollable list of Wayfinder Ticket Cards. A back button returns to the Kanban Board.
+
 ## Behavior
 
 A Behavior is an agent-generated testable verification step derived from Acceptance Criteria. Behaviors are tracked in a separate table with individual validation status. This concept is currently dormant and not surfaced on the Board. It will be revisited in future work.

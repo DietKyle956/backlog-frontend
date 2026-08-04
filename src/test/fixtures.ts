@@ -1,9 +1,9 @@
 import type { Project, Story, Blocker, Dependency } from "../types";
 
 export const mockProjects: Project[] = [
-  { id: 1, name: "Alpha Project", slug: "AP", github_repo: null },
-  { id: 2, name: "Beta Project", slug: "BP", github_repo: null },
-  { id: 3, name: "Contract IQ", slug: "CIQ", github_repo: "DietKyle956/contract-iq" },
+  { id: 1, name: "Alpha Project", slug: "AP", github_repo: null, github_repo_id: null },
+  { id: 2, name: "Beta Project", slug: "BP", github_repo: null, github_repo_id: null },
+  { id: 3, name: "Contract IQ", slug: "CIQ", github_repo: "DietKyle956/contract-iq", github_repo_id: null },
 ];
 
 export const mockStories: Story[] = [
@@ -18,7 +18,7 @@ export const mockStories: Story[] = [
     priority: 1,
     created_at: "2026-07-01T00:00:00Z",
     updated_at: "2026-07-02T00:00:00Z",
-    reviewed_by: "Tyler",
+    wayfinder_ticket_id: null,
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ export const mockStories: Story[] = [
     priority: 2,
     created_at: "2026-07-03T00:00:00Z",
     updated_at: "2026-07-03T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
   },
   {
     id: 3,
@@ -44,7 +44,7 @@ export const mockStories: Story[] = [
     priority: 3,
     created_at: "2026-07-04T00:00:00Z",
     updated_at: "2026-07-04T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
   },
   {
     id: 4,
@@ -57,7 +57,7 @@ export const mockStories: Story[] = [
     priority: 4,
     created_at: "2026-07-05T00:00:00Z",
     updated_at: "2026-07-05T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
   },
   {
     id: 5,
@@ -70,7 +70,7 @@ export const mockStories: Story[] = [
     priority: 1,
     created_at: "2026-07-06T00:00:00Z",
     updated_at: "2026-07-06T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
   },
   {
     id: 6,
@@ -83,7 +83,7 @@ export const mockStories: Story[] = [
     priority: 2,
     created_at: "2026-07-07T00:00:00Z",
     updated_at: "2026-07-08T00:00:00Z",
-    reviewed_by: null,
+    wayfinder_ticket_id: null,
   },
 ];
 
