@@ -18,7 +18,9 @@ const SECTION_LABELS: Record<MetadataSection, string> = {
   outOfScope: "Out of Scope",
 };
 
-const SECTION_KEYS: Record<MetadataSection, keyof WayfinderMap> = {
+type WayfinderMapMetadataKey = "notes" | "decisions_so_far" | "not_yet_specified" | "out_of_scope";
+
+const SECTION_KEYS: Record<MetadataSection, WayfinderMapMetadataKey> = {
   notes: "notes",
   decisions: "decisions_so_far",
   notYetSpecified: "not_yet_specified",
