@@ -280,12 +280,6 @@ export function StoryDetail({
             <span className="text-text-muted">Updated</span>
             <span className="text-text-secondary">{formatDate(story.updated_at)}</span>
           </div>
-          {story.reviewed_by && (
-            <div className="flex justify-between text-xs">
-              <span className="text-text-muted">Reviewer</span>
-              <span className="text-text-secondary">{story.reviewed_by}</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

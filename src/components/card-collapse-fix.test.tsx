@@ -15,7 +15,7 @@ const sampleStory: Story = {
   priority: 2,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
-  reviewed_by: null,
+  wayfinder_ticket_id: null,
 };
 
 describe("Card collapse fix: shrink-0 prevents flex collapse in scrollable containers", () => {

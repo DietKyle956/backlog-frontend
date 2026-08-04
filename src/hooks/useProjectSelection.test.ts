@@ -10,6 +10,9 @@ function makeData(overrides?: Partial<AppData>): AppData {
     stories: mockStories.map((s) => ({ ...s, acceptance_criteria: [...s.acceptance_criteria] })),
     blockers: [],
     dependencies: [],
+    wayfinderMaps: [],
+    wayfinderTickets: [],
+    wayfinderTicketDependencies: [],
     ...overrides,
   };
 }

@@ -106,6 +106,9 @@ function resetStore() {
     stories: mockStories.map((s) => ({ ...s, acceptance_criteria: [...s.acceptance_criteria] })),
     blockers: mockBlockers.map((b) => ({ ...b })),
     dependencies: mockDependencies.map((d) => ({ ...d })),
+    wayfinderMaps: [],
+    wayfinderTickets: [],
+    wayfinderTicketDependencies: [],
   };
   mocks.fetchAllOverride = null;
   mocks.updateStatusOverride = null;
@@ -364,6 +367,9 @@ describe("BLF-002: Error and empty states", () => {
       stories: [],
       blockers: [],
       dependencies: [],
+      wayfinderMaps: [],
+      wayfinderTickets: [],
+      wayfinderTicketDependencies: [],
     };
 
     render(<App />);
@@ -1434,7 +1440,7 @@ describe("BLF-015: Real-time board updates", () => {
       priority: 2,
       created_at: "2026-07-20T00:00:00Z",
       updated_at: "2026-07-20T00:00:00Z",
-      reviewed_by: null,
+      wayfinder_ticket_id: null,
     };
     mocks.store.data!.stories.push(newStory);
 
@@ -1652,7 +1658,7 @@ describe("BLF-016: Pull-to-refresh on board card list", () => {
           priority: 3,
           created_at: "2026-07-20T00:00:00Z",
           updated_at: "2026-07-20T00:00:00Z",
-          reviewed_by: null,
+          wayfinder_ticket_id: null,
         },
       ],
     };
@@ -1700,7 +1706,7 @@ describe("BLF-016: Pull-to-refresh on board card list", () => {
           priority: 4,
           created_at: "2026-07-20T00:00:00Z",
           updated_at: "2026-07-20T00:00:00Z",
-          reviewed_by: null,
+          wayfinder_ticket_id: null,
         },
       ],
     };
@@ -2784,6 +2790,264 @@ describe("BLF-019: Sign in via GitHub OAuth from the board", () => {
       expect(
         screen.getByText(/Your session has expired/),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Wayfinder navigation", () => {
+    it("map selector is not shown when no maps exist for selected project", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // No map selector when there are no wayfinder maps
+      expect(screen.queryByText("Select map...")).not.toBeInTheDocument();
+    });
+
+    it("map selector appears when maps exist for selected project", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      mocks.store.data = {
+        ...mocks.store.data!,
+        wayfinderMaps: [
+          {
+            id: 1,
+            project_id: 3,
+            title: "Auth Design Map",
+            destination: "OAuth system",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+        ],
+      };
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Map selector should appear
+      expect(screen.getByText("Select map...")).toBeInTheDocument();
+    });
+
+    it("map selector filters maps by selected project", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      mocks.store.data = {
+        ...mocks.store.data!,
+        wayfinderMaps: [
+          {
+            id: 1,
+            project_id: 1,
+            title: "Alpha Map",
+            destination: "",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+          {
+            id: 2,
+            project_id: 3,
+            title: "CIQ Map",
+            destination: "",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+        ],
+      };
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Should only show the map for the selected project
+      const select = screen.getByText("Select map...").closest("select");
+      expect(select).not.toBeNull();
+      if (select) {
+        const options = Array.from(select.querySelectorAll("option")).filter(
+          (o) => !o.hasAttribute("disabled"),
+        );
+        expect(options).toHaveLength(1);
+        expect(options[0].textContent).toBe("CIQ Map");
+      }
+    });
+
+    it("selecting a map navigates to the wayfinder map view", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      mocks.store.data = {
+        ...mocks.store.data!,
+        wayfinderMaps: [
+          {
+            id: 1,
+            project_id: 3,
+            title: "CIQ Wayfinder",
+            destination: "Build the system",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+        ],
+        wayfinderTickets: [
+          {
+            id: 1,
+            map_id: 1,
+            title: "Research task",
+            question: "What to research?",
+            ticket_type: "research",
+            hitl: false,
+            status: "open",
+            resolution: null,
+            spec_file: null,
+            sort_order: 1,
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+            closed_at: null,
+          },
+        ],
+      };
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Select the map from the dropdown
+      const select = screen.getByText("Select map...").closest("select")!;
+      fireEvent.change(select, { target: { value: "1" } });
+
+      // Should now show the wayfinder map view
+      await waitFor(() => {
+        expect(screen.getByText("CIQ Wayfinder")).toBeInTheDocument();
+      });
+
+      // Should show the ticket
+      expect(screen.getByText("Research task")).toBeInTheDocument();
+
+      // Should show the destination
+      expect(screen.getByText("Build the system")).toBeInTheDocument();
+    });
+
+    it("back button from wayfinder map view returns to board", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      mocks.store.data = {
+        ...mocks.store.data!,
+        wayfinderMaps: [
+          {
+            id: 1,
+            project_id: 3,
+            title: "Back Test Map",
+            destination: "",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+        ],
+      };
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Navigate to map
+      const select = screen.getByText("Select map...").closest("select")!;
+      fireEvent.change(select, { target: { value: "1" } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Back Test Map")).toBeInTheDocument();
+      });
+
+      // Click back button
+      fireEvent.click(screen.getByLabelText("Back to board"));
+
+      // Should return to board
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Map selector should be visible again
+      expect(screen.getByText("Select map...")).toBeInTheDocument();
+    });
+
+    it("switching projects clears the selected map", async () => {
+      localStorage.setItem("backlog-last-project-id", "3");
+      mocks.store.data = {
+        ...mocks.store.data!,
+        wayfinderMaps: [
+          {
+            id: 1,
+            project_id: 3,
+            title: "CIQ Map",
+            destination: "",
+            notes: "",
+            decisions_so_far: "",
+            not_yet_specified: "",
+            out_of_scope: "",
+            status: "active",
+            created_at: "2026-07-01T00:00:00Z",
+            updated_at: "2026-07-01T00:00:00Z",
+          },
+        ],
+      };
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Navigate to map
+      const mapSelect = screen.getByText("Select map...").closest("select")!;
+      fireEvent.change(mapSelect, { target: { value: "1" } });
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ Map")).toBeInTheDocument();
+      });
+
+      // Go back
+      fireEvent.click(screen.getByLabelText("Back to board"));
+
+      await waitFor(() => {
+        expect(screen.getByText("CIQ-002")).toBeInTheDocument();
+      });
+
+      // Switch project
+      const projectSelect = screen.getByText("Contract IQ").closest("select")!;
+      fireEvent.change(projectSelect, { target: { value: "1" } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Alpha story")).toBeInTheDocument();
+      });
+
+      // Map selector should disappear (no maps for Alpha)
+      expect(screen.queryByText("Select map...")).not.toBeInTheDocument();
     });
   });
 });

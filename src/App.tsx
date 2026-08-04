@@ -8,6 +8,7 @@ import { Board } from "./components/Board";
 import { TransitionErrorBanner } from "./components/TransitionErrorBanner";
 import { SkeletonCard } from "./components/SkeletonCard";
 import { TerminalView } from "./components/TerminalView";
+import { WayfinderMapView } from "./components/WayfinderMapView";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import { createSupabaseAdapter } from "./adapters/supabase-adapter";
 
@@ -19,6 +20,7 @@ export function App() {
     useBoardData(adapter);
   const { performTransition, error: transitionError, clearError: clearTransitionError } = useTransition(adapter);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [selectedMapId, setSelectedMapId] = useState<number | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -28,6 +30,15 @@ export function App() {
 
   const { selectedProject, selectProject, filteredStories } =
     useProjectSelection(data);
+
+  // Wayfinder maps for the selected project
+  const projectMaps = data?.wayfinderMaps.filter(
+    (m) => m.project_id === selectedProject?.id,
+  ) ?? [];
+  const selectedMap = data?.wayfinderMaps.find((m) => m.id === selectedMapId) ?? null;
+  const mapTickets = data?.wayfinderTickets.filter(
+    (t) => t.map_id === selectedMapId,
+  ) ?? [];
 
   // Check auth state — restores session from localStorage on page load
   // and listens for changes (sign in, sign out, token expiry, cross-tab).
@@ -197,13 +208,44 @@ export function App() {
     <div className="min-h-dvh bg-canvas flex flex-col">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 pt-6 pb-1">
-        {data && (
-          <ProjectSwitcher
-            projects={data.projects}
-            selectedId={selectedProject?.id ?? null}
-            onChange={selectProject}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {data && (
+            <ProjectSwitcher
+              projects={data.projects}
+              selectedId={selectedProject?.id ?? null}
+              onChange={(project) => {
+                selectProject(project);
+                setSelectedMapId(null);
+              }}
+            />
+          )}
+          {projectMaps.length > 0 && !selectedMap && (
+            <div className="relative">
+              <select
+                className="appearance-none w-full bg-surface-raised text-text-primary text-sm font-medium
+                           px-3 py-2 pr-8 rounded-lg border border-border-subtle
+                           focus:outline-none focus:ring-2 focus:ring-accent/50"
+                value=""
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  if (id) setSelectedMapId(id);
+                }}
+              >
+                <option value="" disabled>
+                  Select map...
+                </option>
+                {projectMaps.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted text-xs">
+                &#9662;
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -285,8 +327,15 @@ export function App() {
         </div>
       )}
 
-      {/* Board or Terminal view */}
-      {showTerminal && data ? (
+      {/* Board, Terminal, or Wayfinder view */}
+      {selectedMap && data ? (
+        <WayfinderMapView
+          map={selectedMap}
+          tickets={mapTickets}
+          dependencies={data.wayfinderTicketDependencies}
+          onBack={() => setSelectedMapId(null)}
+        />
+      ) : showTerminal && data ? (
         <TerminalView
           stories={data.stories}
           projects={data.projects}

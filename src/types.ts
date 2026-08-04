@@ -47,6 +47,7 @@ export interface Project {
   name: string;
   slug: string;
   github_repo: string | null;
+  github_repo_id: number | null;
 }
 
 export interface Story {
@@ -60,7 +61,7 @@ export interface Story {
   priority: number;
   created_at: string;
   updated_at: string;
-  reviewed_by: string | null;
+  wayfinder_ticket_id: number | null;
 }
 
 export interface Blocker {
@@ -93,9 +94,61 @@ export interface ResolvedDependency {
   isDone: boolean;
 }
 
+// ── Wayfinder domain types ──────────────────────────────────────────────
+
+export type WayfinderMapStatus = "active" | "completed" | "archived";
+
+export type WayfinderTicketType =
+  | "research"
+  | "prototype"
+  | "grilling"
+  | "scaffold";
+
+export type WayfinderTicketStatus = "open" | "claimed" | "closed";
+
+export interface WayfinderMap {
+  id: number;
+  project_id: number;
+  title: string;
+  destination: string;
+  notes: string;
+  decisions_so_far: string;
+  not_yet_specified: string;
+  out_of_scope: string;
+  status: WayfinderMapStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WayfinderTicket {
+  id: number;
+  map_id: number;
+  title: string;
+  question: string;
+  ticket_type: WayfinderTicketType;
+  hitl: boolean;
+  status: WayfinderTicketStatus;
+  resolution: string | null;
+  spec_file: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+export interface WayfinderTicketDependency {
+  ticket_id: number;
+  depends_on_id: number;
+}
+
+// ── App data ────────────────────────────────────────────────────────────
+
 export interface AppData {
   projects: Project[];
   stories: Story[];
   blockers: Blocker[];
   dependencies: Dependency[];
+  wayfinderMaps: WayfinderMap[];
+  wayfinderTickets: WayfinderTicket[];
+  wayfinderTicketDependencies: WayfinderTicketDependency[];
 }

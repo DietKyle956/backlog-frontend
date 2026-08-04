@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 import type { BacklogAdapter } from "../lib/adapter";
-import type { Project, Story, Blocker, Dependency } from "../types";
+import type { Project, Story, Blocker, Dependency, WayfinderMap, WayfinderTicket, WayfinderTicketDependency } from "../types";
 
 export function createSupabaseAdapter(): BacklogAdapter {
   return {
@@ -11,17 +11,26 @@ export function createSupabaseAdapter(): BacklogAdapter {
           storiesRes,
           blockersRes,
           dependenciesRes,
+          wayfinderMapsRes,
+          wayfinderTicketsRes,
+          wayfinderTicketDepsRes,
         ] = await Promise.all([
           supabase.from("projects").select("*").order("name"),
           supabase.from("stories").select("*"),
           supabase.from("blockers").select("*"),
           supabase.from("dependencies").select("*"),
+          supabase.from("wayfinder_maps").select("*").order("title"),
+          supabase.from("wayfinder_tickets").select("*").order("sort_order"),
+          supabase.from("wayfinder_ticket_dependencies").select("*"),
         ]);
 
         if (projectsRes.error) throw projectsRes.error;
         if (storiesRes.error) throw storiesRes.error;
         if (blockersRes.error) throw blockersRes.error;
         if (dependenciesRes.error) throw dependenciesRes.error;
+        if (wayfinderMapsRes.error) throw wayfinderMapsRes.error;
+        if (wayfinderTicketsRes.error) throw wayfinderTicketsRes.error;
+        if (wayfinderTicketDepsRes.error) throw wayfinderTicketDepsRes.error;
 
         return {
           data: {
@@ -29,6 +38,9 @@ export function createSupabaseAdapter(): BacklogAdapter {
             stories: (storiesRes.data as Story[]) ?? [],
             blockers: (blockersRes.data as Blocker[]) ?? [],
             dependencies: (dependenciesRes.data as Dependency[]) ?? [],
+            wayfinderMaps: (wayfinderMapsRes.data as WayfinderMap[]) ?? [],
+            wayfinderTickets: (wayfinderTicketsRes.data as WayfinderTicket[]) ?? [],
+            wayfinderTicketDependencies: (wayfinderTicketDepsRes.data as WayfinderTicketDependency[]) ?? [],
           },
           error: null,
         };
@@ -70,6 +82,21 @@ export function createSupabaseAdapter(): BacklogAdapter {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "dependencies" },
+          () => callback(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "wayfinder_maps" },
+          () => callback(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "wayfinder_tickets" },
+          () => callback(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "wayfinder_ticket_dependencies" },
           () => callback(),
         )
         .subscribe();
