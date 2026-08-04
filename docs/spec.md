@@ -18,7 +18,7 @@ A mobile-first, dark-themed Kanban board single-page web app hosted on GitHub Pa
 6. As a Viewer, I want an empty Column to show a contextual message ("Nothing in [Column Name] yet"), so that I know the column is empty rather than broken.
 7. As a Viewer, I want to tap a Story card to open a full-screen detail overlay, so that I can see all story information.
 8. As a Viewer, I want the detail overlay to show the Story's full Description, Acceptance Criteria as a numbered checklist, Dependencies with their current status (Done/Pending), and Blockers in a red warning section, so that I understand everything about the story.
-9. As a Viewer, I want the detail overlay to show metadata (created date, updated date, reviewer), so that I know the story's history.
+9. As a Viewer, I want the detail overlay to show metadata (created date, updated date), so that I know the story's history.
 10. As a Viewer, I want to switch between Projects using a dropdown at the top of the board, so that I can view each project's board independently.
 11. As a Viewer, I want to access a Terminal view showing all cancelled and failed stories across all projects, so that I can review stories that didn't complete.
 12. As a Viewer, I want to search stories by title or key within the current Column, so that I can find specific stories quickly.

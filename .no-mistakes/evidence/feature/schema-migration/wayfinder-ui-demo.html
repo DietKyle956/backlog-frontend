@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wayfinder Ticket Cards &amp; Map View</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --color-priority-1: #ef4444;
+    --color-priority-1-bg: #fef2f2;
+    --color-priority-2: #f97316;
+    --color-priority-2-bg: #fff7ed;
+    --color-priority-3: #eab308;
+    --color-priority-3-bg: #fefce8;
+    --color-priority-4: #6b7280;
+    --color-priority-4-bg: #f9fafb;
+    --color-canvas: #0f0f0f;
+    --color-surface: #1a1a1a;
+    --color-surface-raised: #252525;
+    --color-surface-hover: #2a2a2a;
+    --color-text-primary: #f5f5f5;
+    --color-text-secondary: #a3a3a3;
+    --color-text-muted: #737373;
+    --color-border-subtle: #333333;
+    --color-accent: #6366f1;
+  }
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .bg-canvas { background-color: var(--color-canvas); }
+  .bg-surface { background-color: var(--color-surface); }
+  .bg-surface-raised { background-color: var(--color-surface-raised); }
+  .text-text-primary { color: var(--color-text-primary); }
+  .text-text-secondary { color: var(--color-text-secondary); }
+  .text-text-muted { color: var(--color-text-muted); }
+  .border-border-subtle { border-color: var(--color-border-subtle); }
+  .text-accent { color: var(--color-accent); }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+</style>
+</head>
+<body class="bg-canvas min-h-screen p-8">
+
+<!-- Wayfinder Ticket Cards - All 4 Types -->
+<section class="mb-12">
+  <h2 class="text-text-primary text-xl font-bold mb-4">Wayfinder Ticket Cards</h2>
+  <p class="text-text-muted text-sm mb-6">Showing all 4 ticket types with priority-mapped colors</p>
+
+  <div class="flex flex-col gap-4 max-w-md">
+    <!-- Research (critical red) -->
+    <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+      <div class="h-1 w-full" style="background-color: var(--color-priority-1)"></div>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-1); background-color: var(--color-priority-1-bg)">Research</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-accent bg-accent/10 px-1.5 py-0.5 rounded-md flex items-center gap-1" title="Human-in-the-loop required">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              HITL
+            </span>
+            <span class="text-xs text-text-muted" title="3 dependencies">&#128279;3</span>
+            <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Open</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-text-primary leading-snug">ADR gap analysis for existing architecture decisions</h3>
+        <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Are the 6 plan ADRs complete? Verify each one against the current codebase and identify gaps.</p>
+      </div>
+    </div>
+
+    <!-- Prototype (high orange) -->
+    <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+      <div class="h-1 w-full" style="background-color: var(--color-priority-2)"></div>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-2); background-color: var(--color-priority-2-bg)">Prototype</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Claimed</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-text-primary leading-snug">Build extraction pipeline PoC</h3>
+        <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Build a prototype to verify the extraction approach works with real contract documents.</p>
+      </div>
+    </div>
+
+    <!-- Grilling (medium yellow) -->
+    <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+      <div class="h-1 w-full" style="background-color: var(--color-priority-3)"></div>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-3); background-color: var(--color-priority-3-bg)">Grilling</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-text-muted" title="2 dependencies">&#128279;2</span>
+            <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Open</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-text-primary leading-snug">Stress-test domain model against enterprise procurement scenarios</h3>
+        <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Run the domain model through 6 enterprise procurement personas and identify gaps.</p>
+      </div>
+    </div>
+
+    <!-- Scaffold (low gray, closed with resolution) -->
+    <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+      <div class="h-1 w-full" style="background-color: var(--color-priority-4)"></div>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-4); background-color: var(--color-priority-4-bg)">Scaffold</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Closed</span>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-text-primary leading-snug">Set up monorepo directory structure</h3>
+        <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Create the directory layout for the monorepo with Go and TypeScript packages.</p>
+        <div class="bg-surface-raised border border-border-subtle rounded-lg p-2">
+          <p class="text-xs text-text-secondary leading-relaxed">Resolved: Monorepo structure created at /contractiq with packages/client, packages/server, and packages/shared.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Wayfinder Map View -->
+<section>
+  <h2 class="text-text-primary text-xl font-bold mb-4">Wayfinder Map View</h2>
+  <p class="text-text-muted text-sm mb-6">Full map with metadata sections, destination, and sorted ticket list</p>
+
+  <div class="max-w-lg border border-border-subtle rounded-xl overflow-hidden bg-canvas">
+    <!-- Header -->
+    <div class="sticky top-0 z-10 bg-canvas/95 backdrop-blur-sm border-b border-border-subtle">
+      <div class="flex items-center gap-3 px-4 py-3">
+        <button type="button" class="text-text-secondary hover:text-text-primary transition-colors p-1 -ml-1" aria-label="Back to board">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-lg font-bold text-text-primary">ContractIQ Architecture &amp; Domain Model</h1>
+        <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Active</span>
+      </div>
+    </div>
+
+    <div class="p-4 space-y-6">
+      <!-- Destination -->
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-1">Destination</h3>
+        <p class="text-sm text-text-secondary">A fully specified architecture and domain model for ContractIQ P0.</p>
+      </div>
+
+      <!-- Collapsible sections (shown expanded for screenshot) -->
+      <div class="border border-border-subtle rounded-lg overflow-hidden">
+        <button type="button" class="w-full flex items-center justify-between px-3 py-2 bg-surface-raised text-left">
+          <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">Notes</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="text-text-muted rotate-180"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="px-3 py-2 border-t border-border-subtle">
+          <p class="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">Skills to consult each session: /grilling, /domain-modeling, /research, /prototype.</p>
+        </div>
+      </div>
+
+      <div class="border border-border-subtle rounded-lg overflow-hidden">
+        <button type="button" class="w-full flex items-center justify-between px-3 py-2 bg-surface-raised text-left">
+          <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">Decisions So Far</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="text-text-muted"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+
+      <!-- Ticket count -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted">Tickets</h2>
+        <span class="text-sm text-text-muted">33 tickets</span>
+      </div>
+
+      <!-- Ticket list (sample) -->
+      <div class="flex flex-col gap-3 pb-4">
+        <!-- Ticket 1 -->
+        <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+          <div class="h-1 w-full" style="background-color: var(--color-priority-1)"></div>
+          <div class="p-4 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-1); background-color: var(--color-priority-1-bg)">Research</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-accent bg-accent/10 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  HITL
+                </span>
+                <span class="text-xs text-text-muted">&#128279;2</span>
+                <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Open</span>
+              </div>
+            </div>
+            <h3 class="text-sm font-semibold text-text-primary leading-snug">Verify ADR completeness</h3>
+            <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Are the 6 plan ADRs complete? Check all architecture decision records.</p>
+          </div>
+        </div>
+
+        <!-- Ticket 2 -->
+        <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+          <div class="h-1 w-full" style="background-color: var(--color-priority-2)"></div>
+          <div class="p-4 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-2); background-color: var(--color-priority-2-bg)">Prototype</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Claimed</span>
+              </div>
+            </div>
+            <h3 class="text-sm font-semibold text-text-primary leading-snug">PoC extract pipeline</h3>
+            <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Build an extraction pipeline prototype with real documents.</p>
+          </div>
+        </div>
+
+        <!-- Ticket 3 (closed with resolution) -->
+        <div class="w-full bg-surface rounded-xl overflow-hidden border border-border-subtle shadow-lg">
+          <div class="h-1 w-full" style="background-color: var(--color-priority-4)"></div>
+          <div class="p-4 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md" style="color: var(--color-priority-4); background-color: var(--color-priority-4-bg)">Scaffold</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-text-muted bg-surface-raised px-2 py-0.5 rounded-md">Closed</span>
+              </div>
+            </div>
+            <h3 class="text-sm font-semibold text-text-primary leading-snug">Monorepo structure</h3>
+            <p class="text-xs text-text-secondary line-clamp-2 leading-relaxed">Create the directory structure.</p>
+            <div class="bg-surface-raised border border-border-subtle rounded-lg p-2">
+              <p class="text-xs text-text-secondary leading-relaxed">Resolved: Structure created at /contractiq.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state for reference -->
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
