@@ -19,3 +19,6 @@ tsconfig.app.tsbuildinfo
 
 # Serena
 .serena/
+
+# Lavish artifacts
+.lavish/
